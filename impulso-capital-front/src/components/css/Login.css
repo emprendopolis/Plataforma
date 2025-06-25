@@ -1,0 +1,99 @@
+/* Contenedor principal que ocupa toda la pantalla */
+.login-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+  }
+  
+  /* Sección izquierda: Formulario */
+  .login-form {
+    flex-basis: 35%; /* Ocupará el 35% del ancho */
+    padding: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: #ffffff;
+  }
+  
+  /* Logo */
+  .login-logo img {
+    width: 250px;
+    margin-bottom: 20px;
+  }
+  
+  /* Títulos */
+  .login-form h2 {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  
+  .login-form p {
+    font-size: 18px;
+    color: #666666;
+    margin-bottom: 10px;
+  }
+  
+  /* Inputs y botón de Ingreso */
+  .input-group {
+    width: 100%; /* Asegurarse de que ocupen todo el ancho dentro de su contenedor */
+    max-width: 500px; /* Ancho máximo para los inputs */
+    margin: 10px auto; /* Centrar horizontalmente */
+  }
+  
+  .form-control {
+    font-size: 16px;
+    height: 50px; /* Aumentar la altura de los inputs */
+    padding: 10px;
+  }
+  
+  .input-group-append .input-group-text {
+    font-size: 16px;
+    height: 50px; /* Igualar la altura del ícono con los inputs */
+  }
+  
+  .login-btn {
+    background-color: #e61a4e;
+    border: none;
+    color: #fff;
+    padding: 15px 0;
+    width: 100%;
+    max-width: 500px; /* Ancho máximo del botón */
+    font-size: 18px;
+    margin: 20px auto 0 auto; /* Centrar horizontalmente */
+  }
+  
+  /* Sección derecha: Espacio para la imagen futura */
+  .login-side {
+    flex-basis: 65%;
+    background-color: #e61a4e;
+  }
+  
+  /* Mensajes de éxito y error en la esquina superior derecha */
+  .message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px; /* Ancho fijo para la alerta */
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 16px;
+    z-index: 1000;
+    color: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .message.success {
+    background-color: #28a745; /* Verde para éxito */
+  }
+  
+  .message.error {
+    background-color: #dc3545; /* Rojo para error */
+  }
+  
+  .close {
+    float: right;
+    color: #fff;
+    cursor: pointer;
+  }
+  
+  

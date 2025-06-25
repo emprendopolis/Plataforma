@@ -1,0 +1,118 @@
+/* Container principal para el diseño en pantalla completa */
+.container-fluid.d-flex {
+  display: flex;
+  min-height: 100vh; /* Cambia height a min-height para permitir crecimiento */
+  overflow: auto; /* Permite desplazamiento si el contenido es más alto que la pantalla */
+}
+
+/* Sidebar (aside) */
+.sidebar-public {
+width: 250px;
+height: 100vh !important; /* Sidebar fijo en la pantalla */
+color: white;
+padding: 0; /* Quita el padding para manejar mejor la distribución */
+background-color: #E61A4E !important;
+display: flex;
+flex-direction: column; /* Apila los elementos verticalmente */
+align-items: center; /* Centra horizontalmente */
+position: fixed; /* Fija el aside al lado izquierdo */
+top: 0;
+left: 0;
+overflow-y: auto; /* Scroll interno en el aside si el contenido es más largo */
+text-align: center;
+}
+
+
+/* Logo del aside */
+.sidebar-logo {
+display: block;
+margin: 20px auto; /* Espaciado superior e inferior */
+max-width: 80%;
+max-height: 100px;
+object-fit: contain; /* Ajusta la imagen sin distorsión */
+}
+
+/* Contenedor del texto centrado */
+.sidebar-text {
+flex: 1; /* Ocupa el espacio restante */
+display: flex;
+align-items: center; /* Centra verticalmente el texto */
+justify-content: center; /* Centra horizontalmente el texto */
+}
+
+
+
+/* Ocultar el aside y expandir el formulario en dispositivos móviles */
+@media (max-width: 768px) {
+  .sidebar-public {
+    display: none;
+  }
+
+  .container-fluid.d-flex {
+    display: block !important; /* Cambia de flex a block en móviles */
+    padding: 0 !important;
+  }
+
+  .form-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 20px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Contenedor del formulario principal */
+.form-wrapper {
+  flex: 1;
+  background-color: #f7f7f7;
+  padding: 40px;
+  margin-left: 250px;
+  overflow-y: auto; /* Permite desplazamiento dentro del formulario */
+}
+
+/* Encabezado del formulario */
+.form-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* Contenido del formulario */
+.form-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+/* Estilo de cada grupo de formulario */
+.form-group {
+  margin-bottom: 15px;
+}
+
+/* Estilo para los inputs y selects */
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+}
+
+/* Botón principal */
+.btn-primary {
+  background-color: #ff4d4d;
+  border: none;
+  padding: 10px 20px;
+  font-weight: bold;
+  border-radius: 5px;
+  color: white;
+}
+
+/* Botón de eliminación */
+.btn-danger {
+  background-color: #e53935;
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 5px;
+}

@@ -1,0 +1,46 @@
+/* Asegurarnos de que el body ocupe el 100% de la pantalla */
+html, body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Wrapper que incluye todo el contenido */
+  .wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Empujar el contenido principal hacia arriba */
+  }
+  
+  /* El contenido principal ocupa el espacio sobrante */
+  .content-wrapper {
+    flex-grow: 1;
+  }
+  
+  /* Footer fijo con altura ajustada */
+  .fixed-footer {
+    background-color: #f8f9fa;
+    padding: 10px 20px;
+    height: 60px; /* Fijar una altura adecuada, puedes ajustar según tus necesidades */
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Evitar el desbordamiento horizontal */
+  html, body, .fixed-footer {
+    overflow-x: hidden;
+  }
+  
+    

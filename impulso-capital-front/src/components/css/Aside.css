@@ -1,0 +1,80 @@
+/* Estilo general del Aside */
+.main-sidebar {
+    background-color: #e61a4e; /* Color de fondo */
+    color: white; /* Texto blanco */
+}
+
+/* Fondo blanco solo en la sección del logo */
+.brand-link {
+    background-color: white; /* Fondo blanco para el logo */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border-bottom: 1px solid #f4f6f9;
+}
+
+.brand-image {
+    height: 50px; /* Ajustar el tamaño del logo */
+    max-width: 100%; /* Escalar correctamente */
+    margin-right: 10px;
+}
+
+.brand-text {
+    color: #e61a4e; /* Color del texto "Impulso Capital" */
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+/* Resto de los elementos del Aside */
+.main-sidebar .nav-sidebar > .nav-item > .nav-link {
+    color: white;
+    transition: background 0.2s, color 0.2s;
+}
+
+.main-sidebar .nav-sidebar > .nav-item > .nav-link i {
+    color: white;
+}
+
+.main-sidebar .nav-sidebar > .nav-item:hover > .nav-link,
+.main-sidebar .nav-sidebar > .nav-item > .nav-link:focus {
+    background-color: #c21844; /* Sombreado más oscuro al pasar el mouse */
+    color: #fff;
+}
+
+.main-sidebar .nav-sidebar > .nav-item > .nav-link.active {
+    background-color: #a01536; /* Sombreado aún más oscuro cuando está activo */
+    color: #fff;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+}
+
+.main-sidebar .user-panel .info a {
+    color: white;
+}
+
+.main-sidebar .sidebar-search {
+    border-color: white;
+}
+
+.main-sidebar .form-control-sidebar {
+    background-color: #e61a4e;
+    color: white;
+    border: 1px solid white;
+}
+
+.main-sidebar .input-group .btn-sidebar {
+    background-color: #e61a4e;
+    color: white;
+}
+
+.sidebar-custom .btn {
+    color: white;
+}
+
+.sidebar-custom .btn:focus {
+    outline: none;
+}
+
+.sidebar-custom .btn:hover {
+    background-color: white;
+}

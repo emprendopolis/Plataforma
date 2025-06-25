@@ -1,0 +1,119 @@
+/* Asegúrate de que el body y html ocupen el 100% de la pantalla */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* El wrapper principal debe ocupar el 100% del viewport */
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Asegura que el contenedor abarque toda la altura de la pantalla */
+}
+
+/* Asegúrate de que el content-wrapper se expanda */
+.content-wrapper {
+    flex: 1;
+    background-color: #f4f6f9; /* Color de fondo */
+    padding-bottom: 20px; /* Para que no toque el footer */
+    height: 100vh;
+}
+
+/* Estilo de la tabla minimalista */
+table.minimal-table {
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    color: #333;
+}
+
+table.minimal-table thead th {
+    background-color: #f8f9fa;
+    color: #333;
+    padding: 12px;
+}
+
+table.minimal-table tbody tr {
+    border-bottom: 1px solid #e9ecef;
+}
+
+table.minimal-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.username {
+    font-weight: bold;
+}
+
+.badge {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-view {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-view:hover {
+    background-color: #0056b3;
+}
+
+/* Espaciado en la tabla */
+.minimal-table td, .minimal-table th {
+    padding: 15px;
+    text-align: left;
+}
+
+/* Crear usuario button */
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 5px;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* Estilos para el campo de búsqueda */
+.search-input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    width: 100%;
+}
+
+/* Ajuste adicional para asegurar que el footer esté siempre al fondo */
+footer {
+    margin-top: auto; /* Para que el footer se mantenga en la parte inferior */
+    width: 100%;
+    background-color: #f4f6f9; /* Ajuste de fondo */
+    padding: 10px;
+    text-align: center;
+    border-top: 1px solid #e9ecef;
+}
+
+  

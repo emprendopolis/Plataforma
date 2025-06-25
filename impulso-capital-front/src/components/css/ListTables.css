@@ -1,0 +1,130 @@
+.field-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  
+  .field-row input, .field-row select {
+    width: 48%; /* Hacer que el campo nombre y el tipo tengan el mismo tamaño */
+  }
+  
+  /* Estilos para tablas */
+  .table-container {
+    table-layout: fixed;
+    width: auto;
+    min-width: 1300px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  
+  .table-header {
+    text-align: center;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .table-cell {
+    text-align: center;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Dimensiones específicas para columnas */
+  .col-id {
+    width: 47.5px;
+    min-width: 47.5px;
+    max-width: 47.5px;
+  }
+  
+  .col-nombre {
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+    text-align: left;
+  }
+  
+  .col-empresa {
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    text-align: left;
+  }
+  
+  .col-localidad {
+    width: 155px;
+    min-width: 155px;
+    max-width: 155px;
+  }
+  
+  .col-asesor {
+    width: 177px;
+    min-width: 177px;
+    max-width: 177px;
+  }
+  
+  .col-estado {
+    width: 210px;
+    min-width: 210px;
+    max-width: 210px;
+  }
+  
+  .col-acciones {
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+  }
+  
+  /* Estilos para el contenido de las celdas */
+  .cell-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .cell-subtext {
+    font-size: 0.9em;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Estilos para badges de estado */
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+  }
+  
+  .badge-success {
+    background-color: #a5f3a1;
+    color: #217a2b;
+  }
+  
+  .badge-danger {
+    background-color: #ffcdd2;
+    color: #c62828;
+  }
+  
+  .badge-warning {
+    background-color: #fff9c4;
+    color: #f57f17;
+  }
+  
+  .badge-info {
+    background-color: #bbdefb;
+    color: #1565c0;
+  }
+  
+  .badge-secondary {
+    background-color: #e0e0e0;
+    color: #424242;
+  }
+  
