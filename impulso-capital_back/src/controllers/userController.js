@@ -197,7 +197,7 @@ exports.forgotPassword = async (req, res) => {
 
     // Configurar el transporte de nodemailer para enviar el correo
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // Podemos usar cualquier servicio de correo compatible
+      service: 'hotmail', // Podemos usar cualquier servicio de correo compatible
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -209,7 +209,9 @@ exports.forgotPassword = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Recuperación de contraseña',
-      text: `Usa este enlace para restablecer tu contraseña: http://localhost:5173/reset-password/${token}`, 
+      text: `Usa este enlace para restablecer tu contraseña: http://localhost:5173/reset-password/${token}
+      
+Por favor no dar respuesta a este correo.`, 
     };
     
 

@@ -9,6 +9,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [alert, setAlert] = useState({ message: '', type: '' }); // Estado para el mensaje de alerta
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export default function Login() {
           />
         </div>
         <h2>Bienvenido,</h2>
-        <p>Sistema de información del proyecto Impulso Local</p>
+        <p>Sistema de información del programa Emprendopolis</p>
         <form onSubmit={handleSubmit}>
           <div className="input-group mb-3">
             <input
@@ -115,7 +116,7 @@ export default function Login() {
           </div>
           <div className="input-group mb-3">
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               className="form-control"
               placeholder="Contraseña"
               value={password}
@@ -127,6 +128,19 @@ export default function Login() {
                 <span className="fas fa-lock" />
               </div>
             </div>
+          </div>
+          {/* Checkbox para mostrar/ocultar contraseña */}
+          <div style={{  marginBottom: "15px", marginTop: "-10px" }}>
+            <input
+              type="checkbox"
+              id="show-password"
+              checked={showPassword}
+              onChange={() => setShowPassword(!showPassword)}
+              style={{ width: "15px", height: "15px" }}
+            />
+            <label htmlFor="show-password" style={{ marginLeft: "2px", color: "#000000", fontWeight: "normal", verticalAlign: "middle" }}>
+              Mostrar contraseña
+            </label>
           </div>
           <div className="row">
             <div className="col-12">

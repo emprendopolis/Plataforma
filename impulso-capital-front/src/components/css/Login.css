@@ -52,7 +52,7 @@
   }
   
   .login-btn {
-    background-color: #e61a4e;
+    background-color: #120B2C;
     border: none;
     color: #fff;
     padding: 15px 0;
@@ -65,7 +65,7 @@
   /* Sección derecha: Espacio para la imagen futura */
   .login-side {
     flex-basis: 65%;
-    background-color: #e61a4e;
+    background-color: #120B2C;
   }
   
   /* Mensajes de éxito y error en la esquina superior derecha */
@@ -96,4 +96,8 @@
     cursor: pointer;
   }
   
+  .login-btn:hover {
+    background-color: #45367e; /* o el color que prefieras */
+    color: #fafafa !important;    /* Esto fuerza el texto blanco */
+}
   
