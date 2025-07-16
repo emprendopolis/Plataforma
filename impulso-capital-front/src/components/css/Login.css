@@ -18,7 +18,7 @@
   /* Logo */
   .login-logo img {
     width: 250px;
-    margin-bottom: 20px;
+    margin-bottom: 50px;
   }
   
   /* Títulos */
@@ -66,6 +66,10 @@
   .login-side {
     flex-basis: 65%;
     background-color: #120B2C;
+    background-image: url('/images/fondo.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
   
   /* Mensajes de éxito y error en la esquina superior derecha */
@@ -97,7 +101,7 @@
   }
   
   .login-btn:hover {
-    background-color: #45367e; /* o el color que prefieras */
+    background-color: #7a9ae2; /* o el color que prefieras */
     color: #fafafa !important;    /* Esto fuerza el texto blanco */
 }
   

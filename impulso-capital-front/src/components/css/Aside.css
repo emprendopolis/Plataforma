@@ -1,6 +1,6 @@
 /* Estilo general del Aside */
 .main-sidebar {
-    background-color: #e61a4e; /* Color de fondo */
+    background-color: #120B2C; /* Color de fondo */
     color: white; /* Texto blanco */
 }
 
@@ -38,18 +38,24 @@
 
 .main-sidebar .nav-sidebar > .nav-item:hover > .nav-link,
 .main-sidebar .nav-sidebar > .nav-item > .nav-link:focus {
-    background-color: #c21844; /* Sombreado más oscuro al pasar el mouse */
+    background-color: #7a9ae2; /* Sombreado más oscuro al pasar el mouse */
     color: #fff;
 }
 
 .main-sidebar .nav-sidebar > .nav-item > .nav-link.active {
-    background-color: #a01536; /* Sombreado aún más oscuro cuando está activo */
+    background-color: #7a9ae2; /* Sombreado aún más oscuro cuando está activo */
     color: #fff;
     box-shadow: 2px 0 8px rgba(0,0,0,0.08);
 }
 
 .main-sidebar .user-panel .info a {
     color: white;
+    font-weight: bold;
+}
+
+.main-sidebar .user-panel .info .text-muted {
+    font-weight: normal !important;
+    color: white !important;
 }
 
 .main-sidebar .sidebar-search {
@@ -57,13 +63,13 @@
 }
 
 .main-sidebar .form-control-sidebar {
-    background-color: #e61a4e;
+    background-color: #7a9ae2;
     color: white;
     border: 1px solid white;
 }
 
 .main-sidebar .input-group .btn-sidebar {
-    background-color: #e61a4e;
+    background-color: #7a9ae2;
     color: white;
 }
 

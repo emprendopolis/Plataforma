@@ -9,6 +9,7 @@ import FormulacionTab from './PlanDeInversion/FormulacionTab';
 import FormulacionProvTab from './PlanDeInversion/FormulacionProvTab';
 import InfoBancariaTab from './PlanDeInversion/InfoBancariaTab';
 import AnexosTab from './PlanDeInversion/AnexosTab';
+import AnexosV2Tab from './PlanDeInversion/AnexosV2Tab';
 import EjecucionTab from './PlanDeInversion/EjecucionTab'; // Nuevo componente
 import EncuestaSalidaTab from './PlanDeInversion/EncuestaSalidaTab';
 import GenerarFichaTab from './PlanDeInversion/GenerarFichaTab';
@@ -135,6 +136,18 @@ export default function PlanDeInversion() {
                   <i className="fas fa-paperclip"></i> Anexos
                 </a>
               </li>
+              <li className={`nav-item ${activeTab === 'AnexosV2' ? 'active' : ''}`}>
+                <a
+                  href="#"
+                  className="nav-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveTab('AnexosV2');
+                  }}
+                >
+                  <i className="fas fa-paperclip"></i> Anexos V2
+                </a>
+              </li>
               {/*<li className={`nav-item ${activeTab === 'Ejecucion' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -185,6 +198,7 @@ export default function PlanDeInversion() {
             {activeTab === 'FormulacionProv' && <FormulacionProvTab id={id} />}
             {activeTab === 'InfoBancaria' && <InfoBancariaTab id={id} />}
             {activeTab === 'Anexos' && <AnexosTab id={id} />}
+            {activeTab === 'AnexosV2' && <AnexosV2Tab id={id} />}
             {activeTab === 'Ejecucion' && <EjecucionTab id={id} />}
             {activeTab === 'EncuestaSalida' && <EncuestaSalidaTab id={id} />}
             {activeTab === 'GenerarFicha' && <GenerarFichaTab id={id} />}
