@@ -209,7 +209,7 @@ exports.forgotPassword = async (req, res) => {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Recuperación de contraseña',
-      text: `Usa este enlace para restablecer tu contraseña: http://localhost:5173/reset-password/${token}
+      text: `Usa este enlace para restablecer tu contraseña: ${process.env.FRONTEND_URL}/reset-password/${token}
       
 Por favor no dar respuesta a este correo.`, 
     };
