@@ -19,7 +19,13 @@ const Permission = require('./src/models/Permission');
 const descargaRoutes = require('./src/routes/descarga');
 
 const app = express();
-app.use(cors());
+// Configuración de CORS para producción
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Servir archivos estáticos (si es necesario)
