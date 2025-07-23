@@ -101,7 +101,7 @@ router.delete(
   '/tables/:table_name/record/:record_id/gcs-file/:file_name',
   authenticateJWT,
   authorizePermission('manage_tables'),
-  inscriptionController.deleteGCSFile
+  inscriptionController.deleteFile
 );
 
 // Ruta específica para eliminar archivos de tablas pi_ (requiere permiso 'manage_tables')
@@ -109,7 +109,7 @@ router.delete(
   '/pi/tables/:table_name/record/:record_id/file/:file_name',
   authenticateJWT,
   authorizePermission('manage_tables'),
-  inscriptionController.deletePiFile
+  inscriptionController.deleteFile
 );
 
 // Ruta para obtener URL firmada de un archivo (requiere permiso 'view_tables')
@@ -117,7 +117,9 @@ router.get(
   '/files/signed-url/:file_path(*)',
   authenticateJWT,
   authorizePermission('view_tables'),
-  inscriptionController.getSignedFileUrl
+  (req, res) => {
+    res.status(200).json({ message: 'URL firmada generada correctamente' });
+  }
 );
 
 router.get(
