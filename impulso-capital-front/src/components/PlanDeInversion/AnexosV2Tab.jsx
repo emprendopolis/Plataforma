@@ -35,17 +35,23 @@ export default function AnexosV2Tab({ id }) {
         return;
       }
 
+      console.log('📡 fetchData - Obteniendo datos de:', `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`);
+
       const response = await axios.get(
         `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      console.log('📦 fetchData - Respuesta completa:', response.data);
+
       const recordData = response.data[0] || null;
 
       if (recordData) {
+        console.log('📋 fetchData - Datos del registro:', recordData);
         setData(recordData);
         setOriginalData({ ...recordData });
       } else {
+        console.log('🆕 fetchData - Creando nuevo registro...');
         // Crear registro con user_id si el backend lo necesita
         const userId = localStorage.getItem('id');
         const createResponse = await axios.post(
@@ -54,6 +60,7 @@ export default function AnexosV2Tab({ id }) {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const newRecord = createResponse.data.record || createResponse.data; 
+        console.log('🆕 fetchData - Nuevo registro creado:', newRecord);
         setData({ ...newRecord });
         setOriginalData({ ...newRecord });
       }
@@ -105,9 +112,10 @@ export default function AnexosV2Tab({ id }) {
       formData.append('fileName', fileNameWithPrefix);
       formData.append('caracterizacion_id', id);
       formData.append('user_id', userId);
+      formData.append('fieldName', currentField);
 
-      await axios.post(
-        `${config.urls.inscriptions.tables}/${tableName}/record/${id}/upload`,
+      const uploadResponse = await axios.post(
+        config.urls.files.upload(tableName, id),
         formData,
         {
           headers: {
@@ -117,13 +125,21 @@ export default function AnexosV2Tab({ id }) {
         }
       );
 
+      // Obtener la URL del archivo desde la respuesta del backend
+      const fileUrl = uploadResponse.data.url;
+
       // Actualizar el campo en la base de datos con la URL del archivo
       const updateData = {
-        [currentField]: fileNameWithPrefix
+        [currentField]: fileUrl
       };
 
+      // Usar la ruta correcta para tablas pi_
+      const updateUrl = tableName.startsWith('pi_') 
+        ? `${config.urls.inscriptions.tables.replace('/tables', '/pi/tables')}/${tableName}/record/${data.id}`
+        : `${config.urls.inscriptions.tables}/${tableName}/record/${data.id}`;
+
       await axios.put(
-        `${config.urls.inscriptions.tables}/${tableName}/record/${data.id}`,
+        updateUrl,
         updateData,
         {
           headers: {
@@ -142,42 +158,74 @@ export default function AnexosV2Tab({ id }) {
     }
   };
 
+  const handleFileView = async (filePath) => {
+    try {
+      console.log('🔍 handleFileView - filePath:', filePath);
+      
+      // Si filePath ya es una URL firmada, usarla directamente
+      if (filePath.startsWith('https://')) {
+        console.log('✅ Usando URL firmada existente:', filePath);
+        window.open(filePath, '_blank');
+        return;
+      }
+      
+      // Si no es una URL, generar una nueva URL firmada
+      const token = localStorage.getItem('token');
+      
+      // Obtener URL firmada del backend
+      const response = await axios.get(
+        `${config.baseUrl}/inscriptions/files/signed-url/${encodeURIComponent(filePath)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log('✅ URL firmada obtenida:', response.data.signedUrl);
+      
+      // Abrir el archivo en una nueva pestaña
+      window.open(response.data.signedUrl, '_blank');
+    } catch (error) {
+      console.error('Error obteniendo URL firmada:', error);
+      alert('Error al abrir el archivo');
+    }
+  };
+
   const handleFileDelete = async (fieldName) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este archivo?')) {
       try {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
         
-        // Eliminar el archivo físico
+        // Eliminar archivo de GCS y limpiar campo en tabla pi_
         if (data[fieldName]) {
-          await axios.delete(
-            `${config.urls.inscriptions.tables}/${tableName}/record/${id}/file/${data[fieldName]}`,
+          // Extraer el nombre del archivo de la ruta de GCS
+          const fileName = data[fieldName].split('/').pop();
+          
+          console.log('🗑️ Eliminando archivo:', fileName);
+          console.log('🏷️ Campo a limpiar:', fieldName);
+          
+          const response = await axios.delete(
+            `${config.baseUrl}/inscriptions/pi/tables/${tableName}/record/${data.caracterizacion_id}/file/${fileName}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
-              data: { user_id: userId }
+              data: { 
+                user_id: userId,
+                field_name: fieldName,
+                record_id: data.id // ID del registro en pi_anexosv2
+              }
             }
           );
+          
+          console.log('✅ Respuesta del servidor:', response.data);
         }
 
-        // Limpiar el campo en la base de datos
-        const updateData = {
-          [fieldName]: null
-        };
-
-        await axios.put(
-          `${config.urls.inscriptions.tables}/${tableName}/record/${data.id}`,
-          updateData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
+        console.log('🔄 Actualizando datos...');
         await fetchData();
+        console.log('✅ Datos actualizados');
       } catch (error) {
         console.error('Error eliminando el archivo:', error);
         setError('Error eliminando el archivo');
@@ -196,9 +244,11 @@ export default function AnexosV2Tab({ id }) {
           <div className="document-status">
             <i className="fas fa-paperclip text-primary me-2"></i>
             <a 
-              href={`${config.baseUrl}/uploads/${data[fieldName]}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
+              href="#" 
+              onClick={(e) => {
+                e.preventDefault();
+                handleFileView(data[fieldName]);
+              }}
               className="text-primary text-decoration-none"
             >
               Ver archivo adjunto
@@ -277,17 +327,33 @@ export default function AnexosV2Tab({ id }) {
             tabIndex="-1"
           >
             <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">
+              <div className="modal-content" style={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
+                <div className="modal-header" style={{ borderBottom: '1px solid #e9ecef', borderRadius: '15px 15px 0 0' }}>
+                  <h6 className="modal-title" style={{ fontSize: '16px', fontWeight: '600', color: '#333' }}>
                     Subir {documentNames[currentField]}
-                  </h5>
+                  </h6>
                   <button 
                     type="button" 
                     className="btn-close" 
                     onClick={closeModal}
                     aria-label="Cerrar"
-                  ></button>
+                    style={{ 
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                      color: '#070024',
+                      cursor: 'pointer',
+                      padding: '0',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ×
+                  </button>
                 </div>
                 <div className="modal-body">
                   <div className="mb-3">
@@ -309,21 +375,30 @@ export default function AnexosV2Tab({ id }) {
                     )}
                   </div>
                 </div>
-                <div className="modal-footer">
+                <div className="modal-footer" style={{ borderTop: '1px solid #e9ecef', borderRadius: '0 0 15px 15px' }}>
                   <button 
                     type="button" 
                     className="btn btn-secondary" 
                     onClick={closeModal}
+                    style={{ borderRadius: '8px' }}
                   >
                     Cancelar
                   </button>
                   <button 
                     type="button" 
-                    className="btn btn-primary" 
+                    className="btn" 
                     onClick={handleFileUpload}
                     disabled={!selectedFile}
+                    style={{ 
+                      backgroundColor: '#070024',
+                      borderColor: '#070024',
+                      color: 'white',
+                      borderRadius: '8px',
+                      padding: '8px 20px',
+                      fontWeight: '500'
+                    }}
                   >
-                    {selectedFile ? 'Subir archivo' : 'Selecciona un archivo primero'}
+                    {selectedFile ? 'Cargar' : 'Selecciona un archivo primero'}
                   </button>
                 </div>
               </div>

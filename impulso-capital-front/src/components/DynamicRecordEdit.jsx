@@ -64,8 +64,8 @@ export default function DynamicRecordEdit() {
 
   // Opciones de priorización
   const priorizacionOptions = [
-    'Víctima del conflicto armado',
-    'MyPyme/Emprendimiento'
+    'Grupo 1',
+    'Grupo 2'
   ];
   const [editandoPriorizacion, setEditandoPriorizacion] = useState(false);
   const [valorPriorizacion, setValorPriorizacion] = useState('');

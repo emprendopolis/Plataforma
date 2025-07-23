@@ -124,7 +124,7 @@ export default function PlanDeInversion() {
                   <i className="fas fa-credit-card"></i> Información Bancaria
                 </a>
               </li>*/}
-              <li className={`nav-item ${activeTab === 'Anexos' ? 'active' : ''}`}>
+              {/* <li className={`nav-item ${activeTab === 'Anexos' ? 'active' : ''}`}>
                 <a
                   href="#"
                   className="nav-link"
@@ -135,7 +135,7 @@ export default function PlanDeInversion() {
                 >
                   <i className="fas fa-paperclip"></i> Anexos
                 </a>
-              </li>
+              </li> */}
               <li className={`nav-item ${activeTab === 'AnexosV2' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -145,7 +145,7 @@ export default function PlanDeInversion() {
                     setActiveTab('AnexosV2');
                   }}
                 >
-                  <i className="fas fa-paperclip"></i> Anexos V2
+                  <i className="fas fa-paperclip"></i> Anexos
                 </a>
               </li>
               {/*<li className={`nav-item ${activeTab === 'Ejecucion' ? 'active' : ''}`}>
@@ -197,7 +197,7 @@ export default function PlanDeInversion() {
             {/* {activeTab === 'Formulacion' && <FormulacionTab id={id} />} */}
             {activeTab === 'FormulacionProv' && <FormulacionProvTab id={id} />}
             {activeTab === 'InfoBancaria' && <InfoBancariaTab id={id} />}
-            {activeTab === 'Anexos' && <AnexosTab id={id} />}
+            {/* {activeTab === 'Anexos' && <AnexosTab id={id} />} */}
             {activeTab === 'AnexosV2' && <AnexosV2Tab id={id} />}
             {activeTab === 'Ejecucion' && <EjecucionTab id={id} />}
             {activeTab === 'EncuestaSalida' && <EncuestaSalidaTab id={id} />}

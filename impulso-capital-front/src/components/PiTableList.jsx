@@ -252,6 +252,7 @@ export default function PiTableList() {
     'id',
     'Nombre',
     'Empresa',
+    'Grupo',
     'Localidad',
     'Asesor',
     'Estado',
@@ -403,7 +404,7 @@ export default function PiTableList() {
                         <table className="table table-hover text-nowrap minimal-table" style={{ 
                           tableLayout: 'fixed', 
                           width: 'auto', 
-                          minWidth: '1300px',
+                          minWidth: '1450px',
                           borderCollapse: 'separate',
                           borderSpacing: 0
                         }}>
@@ -416,18 +417,21 @@ export default function PiTableList() {
                                   width: column === 'id' ? '10px' :
                                          column === 'Nombre' ? '300px' :
                                          column === 'Empresa' ? '280px' :
+                                         column === 'Grupo' ? '150px' :
                                          column === 'Localidad' ? '155px' :
                                          column === 'Asesor' ? '177px' :
                                          column === 'Estado' ? '150px' : 'auto',
                                   minWidth: column === 'id' ? '100px' :
                                           column === 'Nombre' ? '300px' :
                                           column === 'Empresa' ? '280px' :
+                                          column === 'Grupo' ? '150px' :
                                           column === 'Localidad' ? '155px' :
                                           column === 'Asesor' ? '177px' :
                                           column === 'Estado' ? '150px' : 'auto',
                                   maxWidth: column === 'id' ? '100px' :
                                           column === 'Nombre' ? '300px' :
                                           column === 'Empresa' ? '280px' :
+                                          column === 'Grupo' ? '150px' :
                                           column === 'Localidad' ? '155px' :
                                           column === 'Asesor' ? '177px' :
                                           column === 'Estado' ? '150px' : 'auto',
@@ -503,6 +507,16 @@ export default function PiTableList() {
                                       CC: {record["Numero de documento de identificacion ciudadano"] || record["Numero de identificacion"] || ''}
                                     </div>
                                   </td>
+                                  <td style={{ 
+                                    textAlign: 'center', 
+                                    verticalAlign: 'middle', 
+                                    width: '150px',
+                                    minWidth: '150px',
+                                    maxWidth: '150px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>{record["Priorizacion capitalizacion"] || ''}</td>
                                   <td style={{ 
                                     textAlign: 'center', 
                                     verticalAlign: 'middle', 
