@@ -15,16 +15,19 @@ services:
       - key: JWT_EXPIRES_IN
         value: 24h
       - key: CORS_ORIGIN
-        value: https://tu-frontend-netlify.netlify.app
+        value: https://emprendopolis.netlify.app
       - key: GCS_BUCKET
-        value: proyecto-alcaldia-2025
+        value: emprendopolis-files-2025
       - key: GCP_PROJECT_ID
-        value: proyecto-alcaldia-461421
+        value: emprendopolis-storage
       - key: EMAIL_USER
         value: tecnologia@propais.org.co
       - key: EMAIL_PASS
         sync: false
       - key: FRONTEND_URL
-        value: https://tu-frontend-netlify.netlify.app
+        value: https://emprendopolis.netlify.app
       - key: GOOGLE_APPLICATION_CREDENTIALS
-        value: ./gcs-credentials.json 
+        value: /opt/render/project/src/impulso-capital_back/gcs-credentials.json
+    secretFiles:
+      - key: gcs-credentials
+        name: gcs-credentials.json 
