@@ -3153,18 +3153,24 @@ exports.uploadInicialesFile = async (req, res) => {
   const { documentType, fileName, user_id } = req.body;
   const finalUserId = user_id || 0;
 
+  console.log('🔍 [uploadInicialesFile] Iniciando...');
+  console.log('📋 Parámetros recibidos:', { caracterizacion_id, documentType, fileName, user_id });
+
   try {
     if (!req.file) {
+      console.log('❌ No se subió ningún archivo');
       return res.status(400).json({ message: 'No se ha subido ningún archivo' });
     }
 
     if (!caracterizacion_id) {
+      console.log('❌ Falta caracterizacion_id');
       return res.status(400).json({
         message: 'El ID de caracterización es requerido',
       });
     }
 
     if (!documentType) {
+      console.log('❌ Falta documentType');
       return res.status(400).json({
         message: 'El tipo de documento es requerido',
       });
@@ -3173,19 +3179,24 @@ exports.uploadInicialesFile = async (req, res) => {
     // Validar que el tipo de documento sea válido
     const validDocumentTypes = ['CC', 'RP', 'DA'];
     if (!validDocumentTypes.includes(documentType)) {
+      console.log('❌ Tipo de documento inválido:', documentType);
       return res.status(400).json({
         message: 'Tipo de documento inválido. Debe ser CC, RP o DA',
       });
     }
 
     const finalFileName = fileName || req.file.originalname;
+    console.log('📄 Nombre final del archivo:', finalFileName);
 
     // Generar la ruta de GCS usando la nueva estructura
     let gcsPath;
     try {
+      console.log('🔄 Generando ruta GCS...');
       const { generateInicialesPath } = require('../utils/gcs');
       gcsPath = await generateInicialesPath(caracterizacion_id, documentType, finalFileName);
+      console.log('✅ Ruta GCS generada:', gcsPath);
     } catch (pathError) {
+      console.error('❌ Error generando ruta GCS:', pathError);
       return res.status(500).json({
         message: 'Error generando la ruta del archivo',
         error: pathError.message,
