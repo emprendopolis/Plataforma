@@ -19,8 +19,22 @@ const DOCUMENT_CODES = {
   'plan_inversion': 'PI',
   'evidencia_fotografica_1': 'RF1',
   
+  // Documentos Iniciales (Empresas)
+  'cedula_ciudadania': 'CC',
+  'recibo_publico': 'RP',
+  'documento_antiguedad': 'DA',
+  
   // Cierre de Ruta (futuro - pi_anexosv2)
   // Se agregarán cuando se definan los campos
+};
+
+/**
+ * Mapeo de tipos de documento para el frontend
+ */
+const DOCUMENT_TYPES = {
+  'CC': 'Cédula de Ciudadanía',
+  'RP': 'Recibo público',
+  'DA': 'Documento Antigüedad'
 };
 
 /**
@@ -190,5 +204,6 @@ module.exports = {
   generateInicialesPath,
   generateCierreRutaPath,
   getUserData,
-  DOCUMENT_CODES
+  DOCUMENT_CODES,
+  DOCUMENT_TYPES
 };

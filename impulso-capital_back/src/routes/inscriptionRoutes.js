@@ -117,9 +117,7 @@ router.get(
   '/files/signed-url/:file_path(*)',
   authenticateJWT,
   authorizePermission('view_tables'),
-  (req, res) => {
-    res.status(200).json({ message: 'URL firmada generada correctamente' });
-  }
+  inscriptionController.getSignedUrl
 );
 
 router.get(
@@ -166,6 +164,15 @@ router.get(
   authenticateJWT,
   authorizePermission('view_tables'),
   inscriptionController.getActiveCaracterizacionRecords
+);
+
+// Ruta específica para subir archivos de AnexosV2
+router.post(
+  '/pi/anexosv2/upload',
+  authenticateJWT,
+  authorizePermission('manage_tables'),
+  upload.single('file'),
+  inscriptionController.uploadAnexosV2File
 );
 
 // Ruta para crear un nuevo registro en una tabla dinámica de PI
@@ -250,5 +257,41 @@ router.get(
   inscriptionController.getRecordHistory
 );
 
+// ----------------------------------------------------------------------------------------
+// RUTAS PARA DOCUMENTOS INICIALES (EMPRESAS)
+// ----------------------------------------------------------------------------------------
+
+// Ruta para subir archivos de documentos iniciales
+router.post(
+  '/iniciales/:caracterizacion_id/upload',
+  authenticateJWT,
+  authorizePermission('manage_tables'),
+  upload.single('file'),
+  inscriptionController.uploadInicialesFile
+);
+
+// Ruta para obtener archivos de documentos iniciales
+router.get(
+  '/iniciales/:caracterizacion_id/files',
+  authenticateJWT,
+  authorizePermission('view_tables'),
+  inscriptionController.getInicialesFiles
+);
+
+// Ruta para eliminar un archivo de documentos iniciales
+router.delete(
+  '/iniciales/:caracterizacion_id/file/:file_id',
+  authenticateJWT,
+  authorizePermission('manage_tables'),
+  inscriptionController.deleteInicialesFile
+);
+
+// Ruta para actualizar el cumplimiento de un archivo de documentos iniciales
+router.put(
+  '/iniciales/:caracterizacion_id/file/:file_id/compliance',
+  authenticateJWT,
+  authorizePermission('manage_tables'),
+  inscriptionController.updateInicialesFileCompliance
+);
 
 module.exports = router;

@@ -115,7 +115,7 @@ export default function AnexosV2Tab({ id }) {
       formData.append('fieldName', currentField);
 
       const uploadResponse = await axios.post(
-        config.urls.files.upload(tableName, id),
+        `${config.baseUrl}/inscriptions/pi/anexosv2/upload`,
         formData,
         {
           headers: {

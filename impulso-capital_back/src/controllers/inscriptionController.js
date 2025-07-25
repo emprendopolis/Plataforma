@@ -1609,9 +1609,7 @@ exports.uploadFile = async (req, res) => {
   const finalUserId = user_id || 0; 
 
   try {
-    // console.log('[uploadFile] Iniciando subida de archivo...');
     if (!req.file) {
-      // console.error('[uploadFile] No se ha subido ningún archivo');
       return res.status(400).json({ message: 'No se ha subido ningún archivo' });
     }
 
@@ -1620,7 +1618,6 @@ exports.uploadFile = async (req, res) => {
       !table_name.startsWith('provider_') &&
       !table_name.startsWith('pi_')
     ) {
-      // console.error('[uploadFile] Nombre de tabla inválido:', table_name);
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
 
@@ -1630,25 +1627,21 @@ exports.uploadFile = async (req, res) => {
 
     if (table_name.startsWith('pi_')) {
       if (!caracterizacion_id) {
-        // console.error('[uploadFile] Falta caracterizacion_id para tabla pi_');
         return res.status(400).json({
           message: 'El ID de caracterización es requerido para tablas pi_',
         });
       }
       finalRecordId = caracterizacion_id;
-      gcsPath = `inscription_caracterizacion/${caracterizacion_id}/${finalFileName}`;
+      gcsPath = `${table_name}/${caracterizacion_id}/${finalFileName}`;
     } else {
       gcsPath = `${table_name}/${record_id}/${finalFileName}`;
     }
 
     // Sube el archivo temporal a GCS
-    let publicUrl;
+    let gcsDestination;
     try {
-      // console.log('[uploadFile] Subiendo archivo a GCS:', req.file.path, '->', gcsPath);
-      publicUrl = await uploadFileToGCS(req.file.path, gcsPath);
-      // console.log('[uploadFile] Archivo subido a GCS. URL:', publicUrl);
+      gcsDestination = await uploadFileToGCS(req.file.path, gcsPath);
     } catch (gcsError) {
-      // console.error('[uploadFile] Error subiendo el archivo a GCS:', gcsError);
       return res.status(500).json({
         message: 'Error subiendo el archivo a Google Cloud Storage',
         error: gcsError.message || gcsError,
@@ -1657,21 +1650,19 @@ exports.uploadFile = async (req, res) => {
 
     // Borra el archivo temporal local
     try {
-      // console.log('[uploadFile] Archivo temporal eliminado:', req.file.path);
       fs.unlinkSync(req.file.path);
     } catch (fsError) {
-      // console.error('[uploadFile] Error eliminando archivo temporal:', fsError);
+      // Continuar aunque falle la eliminación del archivo temporal
     }
 
-    // Guarda la URL pública en la base de datos
+    // Guarda la ruta de GCS en la base de datos (no la URL pública)
     const newFile = await File.create({
       record_id: finalRecordId,
       table_name,
       name: finalFileName,
-      file_path: publicUrl, // Ahora guardamos la URL pública
+      file_path: gcsDestination, // Guardamos la ruta de GCS, no la URL
       source: source || 'unknown',
     });
-    // console.log('[uploadFile] Registro guardado en la base de datos. ID:', newFile.id);
 
     // Extraer formulacion_id del nombre del archivo si existe
     let formulacion_id = null;
@@ -1691,15 +1682,14 @@ exports.uploadFile = async (req, res) => {
       newFile.name,
       `Se subió el archivo: ${newFile.name}`
     );
-    // console.log('[uploadFile] Historial actualizado.');
 
     res.status(200).json({
       message: 'Archivo subido exitosamente a Google Cloud Storage',
       file: newFile,
-      url: publicUrl,
+      url: gcsDestination,
     });
   } catch (error) {
-    console.error('[uploadFile] Error general:', error);
+    console.error('Error subiendo el archivo:', error);
     res.status(500).json({
       message: 'Error subiendo el archivo',
       error: error.message,
@@ -3148,6 +3138,440 @@ exports.getRecordHistory = async (req, res) => {
     console.error('Error obteniendo el historial:', error);
     return res.status(500).json({
       message: 'Error interno del servidor al obtener el historial.',
+      error: error.message,
+    });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// --------------------------- CONTROLADOR uploadInicialesFile -----------------------------
+// ----------------------------------------------------------------------------------------
+
+// Controlador para subir archivos de Documentos Iniciales (Empresas)
+exports.uploadInicialesFile = async (req, res) => {
+  const { caracterizacion_id } = req.params;
+  const { documentType, fileName, user_id } = req.body;
+  const finalUserId = user_id || 0;
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No se ha subido ningún archivo' });
+    }
+
+    if (!caracterizacion_id) {
+      return res.status(400).json({
+        message: 'El ID de caracterización es requerido',
+      });
+    }
+
+    if (!documentType) {
+      return res.status(400).json({
+        message: 'El tipo de documento es requerido',
+      });
+    }
+
+    // Validar que el tipo de documento sea válido
+    const validDocumentTypes = ['CC', 'RP', 'DA'];
+    if (!validDocumentTypes.includes(documentType)) {
+      return res.status(400).json({
+        message: 'Tipo de documento inválido. Debe ser CC, RP o DA',
+      });
+    }
+
+    const finalFileName = fileName || req.file.originalname;
+
+    // Generar la ruta de GCS usando la nueva estructura
+    let gcsPath;
+    try {
+      const { generateInicialesPath } = require('../utils/gcs');
+      gcsPath = await generateInicialesPath(caracterizacion_id, documentType, finalFileName);
+    } catch (pathError) {
+      return res.status(500).json({
+        message: 'Error generando la ruta del archivo',
+        error: pathError.message,
+      });
+    }
+
+    // Sube el archivo temporal a GCS
+    let gcsDestination;
+    try {
+      const { uploadFileToGCS } = require('../utils/gcs');
+      gcsDestination = await uploadFileToGCS(req.file.path, gcsPath);
+    } catch (gcsError) {
+      return res.status(500).json({
+        message: 'Error subiendo el archivo a Google Cloud Storage',
+        error: gcsError.message || gcsError,
+      });
+    }
+
+    // Borra el archivo temporal local
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (fsError) {
+      // Continuar aunque falle la eliminación del archivo temporal
+    }
+
+    // Guarda la ruta de GCS en la base de datos (no la URL firmada)
+    const newFile = await File.create({
+      record_id: caracterizacion_id,
+      table_name: 'inscription_caracterizacion',
+      name: finalFileName,
+      file_path: gcsDestination,
+      source: 'documentos_iniciales',
+    });
+
+    // Insertar en el historial
+    await insertHistory(
+      'inscription_caracterizacion',
+      caracterizacion_id,
+      finalUserId,
+      'upload_iniciales_file',
+      `Documento Inicial (${documentType})`,
+      null,
+      newFile.name,
+      `Se subió el documento inicial: ${newFile.name} (Tipo: ${documentType})`
+    );
+
+    res.status(200).json({
+      message: 'Documento inicial subido exitosamente',
+      file: newFile,
+      url: gcsDestination,
+      documentType: documentType,
+    });
+  } catch (error) {
+    console.error('Error subiendo el documento inicial:', error);
+    res.status(500).json({
+      message: 'Error subiendo el documento inicial',
+      error: error.message,
+    });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// --------------------------- CONTROLADOR getInicialesFiles -------------------------------
+// ----------------------------------------------------------------------------------------
+
+// Controlador para obtener archivos de Documentos Iniciales
+exports.getInicialesFiles = async (req, res) => {
+  const { caracterizacion_id } = req.params;
+
+  try {
+    if (!caracterizacion_id) {
+      return res.status(400).json({
+        message: 'El ID de caracterización es requerido',
+      });
+    }
+
+    // Obtener archivos de la tabla files que correspondan a documentos iniciales
+    const files = await File.findAll({
+      where: {
+        record_id: caracterizacion_id,
+        table_name: 'inscription_caracterizacion',
+        source: 'documentos_iniciales',
+      },
+      order: [['created_at', 'DESC']],
+    });
+
+    // Generar URLs firmadas para cada archivo
+    const { getSignedUrlFromGCS } = require('../utils/gcs');
+    const filesWithUrls = await Promise.all(files.map(async (file) => {
+      try {
+        // Extraer el path relativo en el bucket desde file_path
+        let destination = file.file_path;
+        const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
+        if (destination.startsWith(bucketUrl)) {
+          destination = destination.slice(bucketUrl.length);
+        }
+        
+        // Generar URL firmada con tiempo de expiración de 1 hora
+        const signedUrl = await getSignedUrlFromGCS(destination, 3600);
+        
+        return {
+          id: file.id,
+          name: file.name,
+          url: signedUrl,
+          documentType: extractDocumentTypeFromPath(destination),
+          createdAt: file.created_at,
+          cumple: file.cumple,
+          'descripcion cumplimiento': file['descripcion cumplimiento'],
+          source: file.source,
+        };
+      } catch (error) {
+        console.error(`Error generando URL firmada para archivo ${file.name}:`, error);
+        return {
+          id: file.id,
+          name: file.name,
+          url: null,
+          documentType: null,
+          createdAt: file.created_at,
+          cumple: file.cumple,
+          'descripcion cumplimiento': file['descripcion cumplimiento'],
+          source: file.source,
+        };
+      }
+    }));
+
+    res.status(200).json({ files: filesWithUrls });
+  } catch (error) {
+    console.error('[getInicialesFiles] Error obteniendo los archivos:', error);
+    res.status(500).json({
+      message: 'Error obteniendo los archivos de documentos iniciales',
+      error: error.message,
+    });
+  }
+};
+
+// Función auxiliar para extraer el tipo de documento de la ruta
+function extractDocumentTypeFromPath(path) {
+  // Buscar patrones como _CC_, _RP_, _DA_ en la ruta
+  const match = path.match(/_([A-Z]{2})_/);
+  return match ? match[1] : null;
+}
+
+// ----------------------------------------------------------------------------------------
+// ----------------------- CONTROLADOR updateInicialesFileCompliance ----------------------
+// ----------------------------------------------------------------------------------------
+
+exports.updateInicialesFileCompliance = async (req, res) => {
+  const { caracterizacion_id, file_id } = req.params;
+  const { cumple, descripcion_cumplimiento } = req.body;
+
+  try {
+    // Validar entrada
+    if (cumple === undefined || cumple === null) {
+      return res.status(400).json({ error: 'El campo "cumple" es requerido' });
+    }
+
+    // Actualizar el archivo en la base de datos
+    const [results] = await sequelize.query(
+      `UPDATE files
+       SET cumple = :cumple, "descripcion cumplimiento" = :descripcion_cumplimiento
+       WHERE id = :file_id AND record_id = :caracterizacion_id AND table_name = 'inscription_caracterizacion' AND source = 'documentos_iniciales'
+       RETURNING id`,
+      {
+        replacements: {
+          cumple,
+          descripcion_cumplimiento,
+          file_id,
+          caracterizacion_id,
+        },
+        type: QueryTypes.UPDATE,
+      }
+    );
+
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Archivo no encontrado o no pertenece al registro' });
+    }
+
+    res.json({ message: 'Estado de cumplimiento actualizado correctamente' });
+  } catch (error) {
+    console.error('Error actualizando el cumplimiento:', error);
+    res.status(500).json({ error: 'Error actualizando el cumplimiento' });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// ----------------------- CONTROLADOR deleteInicialesFile --------------------------------
+// ----------------------------------------------------------------------------------------
+
+exports.deleteInicialesFile = async (req, res) => {
+  const { caracterizacion_id, file_id } = req.params;
+
+  try {
+    // Buscar el archivo en la base de datos
+    const file = await File.findOne({
+      where: {
+        id: file_id,
+        record_id: caracterizacion_id,
+        table_name: 'inscription_caracterizacion',
+        source: 'documentos_iniciales',
+      },
+    });
+
+    if (!file) {
+      return res.status(404).json({ message: 'Archivo no encontrado' });
+    }
+
+    // Eliminar el archivo de Google Cloud Storage
+    const { bucket } = require('../utils/gcs');
+    let destination = file.file_path;
+    const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
+    if (destination.startsWith(bucketUrl)) {
+      destination = destination.slice(bucketUrl.length);
+    }
+
+    try {
+      const gcsFile = bucket.file(destination);
+      await gcsFile.delete();
+    } catch (gcsError) {
+      // Continuar con la eliminación de la BD aunque falle en GCS
+    }
+
+    // Eliminar el registro de la base de datos
+    await File.destroy({
+      where: {
+        id: file_id,
+        record_id: caracterizacion_id,
+        table_name: 'inscription_caracterizacion',
+        source: 'documentos_iniciales',
+      },
+    });
+
+    // Registrar en el historial
+    const userId = req.user && req.user.id ? req.user.id : null;
+    await insertHistory(
+      'inscription_caracterizacion',
+      caracterizacion_id,
+      userId,
+      'delete_file',
+      'Documento Inicial',
+      file.name,
+      null,
+      `Se eliminó el documento inicial: ${file.name}`
+    );
+
+    res.status(200).json({ message: 'Documento inicial eliminado correctamente' });
+  } catch (error) {
+    console.error('Error eliminando el archivo:', error);
+    res.status(500).json({
+      message: 'Error eliminando el documento inicial',
+      error: error.message,
+    });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// ----------------------- CONTROLADOR getSignedUrl -------------------------------------
+// ----------------------------------------------------------------------------------------
+
+exports.getSignedUrl = async (req, res) => {
+  const { file_path } = req.params;
+
+  try {
+    if (!file_path) {
+      return res.status(400).json({ message: 'Ruta del archivo es requerida' });
+    }
+
+    // Decodificar la ruta del archivo
+    const decodedPath = decodeURIComponent(file_path);
+    
+    // Generar URL firmada con tiempo de expiración de 1 hora
+    const signedUrl = await getSignedUrlFromGCS(decodedPath, 3600);
+    
+    if (!signedUrl) {
+      return res.status(404).json({ message: 'Archivo no encontrado' });
+    }
+
+    res.status(200).json({ signedUrl });
+  } catch (error) {
+    console.error('Error generando URL firmada:', error);
+    res.status(500).json({
+      message: 'Error generando URL firmada',
+      error: error.message,
+    });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// ----------------------- CONTROLADOR uploadAnexosV2File --------------------------------
+// ----------------------------------------------------------------------------------------
+
+exports.uploadAnexosV2File = async (req, res) => {
+  const { table_name, record_id } = req.params;
+  const { fileName, caracterizacion_id, source, user_id, fieldName } = req.body;
+  const finalUserId = user_id || 0; 
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No se ha subido ningún archivo' });
+    }
+
+    if (table_name !== 'pi_anexosv2') {
+      return res.status(400).json({ message: 'Este endpoint es solo para pi_anexosv2' });
+    }
+
+    if (!caracterizacion_id) {
+      return res.status(400).json({
+        message: 'El ID de caracterización es requerido',
+      });
+    }
+
+    if (!fieldName) {
+      return res.status(400).json({
+        message: 'El nombre del campo es requerido para AnexosV2',
+      });
+    }
+
+    const finalFileName = fileName || req.file.originalname;
+
+    // Generar la ruta de GCS usando generateVisita1Path
+    let gcsPath;
+    try {
+      const { generateVisita1Path } = require('../utils/gcs');
+      gcsPath = await generateVisita1Path(caracterizacion_id, fieldName, finalFileName);
+    } catch (pathError) {
+      return res.status(500).json({
+        message: 'Error generando la ruta del archivo',
+        error: pathError.message,
+      });
+    }
+
+    // Sube el archivo temporal a GCS
+    let gcsDestination;
+    try {
+      const { uploadFileToGCS } = require('../utils/gcs');
+      gcsDestination = await uploadFileToGCS(req.file.path, gcsPath);
+    } catch (gcsError) {
+      return res.status(500).json({
+        message: 'Error subiendo el archivo a Google Cloud Storage',
+        error: gcsError.message || gcsError,
+      });
+    }
+
+    // Borra el archivo temporal local
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (fsError) {
+      // Continuar aunque falle la eliminación del archivo temporal
+    }
+
+    // Guarda la ruta de GCS en la base de datos
+    const newFile = await File.create({
+      record_id: caracterizacion_id,
+      table_name: 'pi_anexosv2',
+      name: finalFileName,
+      file_path: gcsDestination,
+      source: source || 'anexosv2',
+    });
+
+    // Extraer formulacion_id del nombre del archivo si existe
+    let formulacion_id = null;
+    const match = finalFileName.match(/_formulacion_(\d+)/);
+    if (match) {
+      formulacion_id = parseInt(match[1], 10);
+    }
+
+    // Insertar en el historial
+    await insertHistory(
+      'pi_anexosv2',
+      caracterizacion_id,
+      finalUserId,
+      'upload_file',
+      formulacion_id ? `Archivo (formulacion_id:${formulacion_id})` : 'Archivo',
+      null,
+      newFile.name,
+      `Se subió el archivo AnexosV2: ${newFile.name} (Campo: ${fieldName})`
+    );
+
+    res.status(200).json({
+      message: 'Archivo AnexosV2 subido exitosamente',
+      file: newFile,
+      url: gcsDestination,
+    });
+  } catch (error) {
+    console.error('Error subiendo el archivo AnexosV2:', error);
+    res.status(500).json({
+      message: 'Error subiendo el archivo AnexosV2',
       error: error.message,
     });
   }

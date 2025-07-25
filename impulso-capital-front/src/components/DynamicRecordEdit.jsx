@@ -25,6 +25,19 @@ export default function DynamicRecordEdit() {
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
+  // Estados para documentos iniciales
+  const [showInicialesUploadForm, setShowInicialesUploadForm] = useState(false);
+  const [inicialesFile, setInicialesFile] = useState(null);
+  const [selectedDocumentType, setSelectedDocumentType] = useState('');
+  const [inicialesFiles, setInicialesFiles] = useState([]);
+
+  // Opciones para tipos de documentos iniciales
+  const documentTypeOptions = [
+    { value: 'CC', label: 'Cédula de Ciudadanía' },
+    { value: 'RP', label: 'Recibo público' },
+    { value: 'DA', label: 'Documento Antigüedad' }
+  ];
+
   const [completionPercentage, setCompletionPercentage] = useState(0);
 
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -256,6 +269,11 @@ export default function DynamicRecordEdit() {
         );
         setUploadedFiles(filesResponse.data.files);
 
+        // Cargar archivos de documentos iniciales
+        console.log('🔄 useEffect - Llamando fetchInicialesFiles...');
+        await fetchInicialesFiles();
+        console.log('✅ useEffect - fetchInicialesFiles completado');
+
         const calificacionValue = recordResponse.data.record.Calificacion;
         if (calificacionValue !== undefined && calificacionValue !== null) {
           setCalificacion(Number(calificacionValue));
@@ -432,15 +450,102 @@ export default function DynamicRecordEdit() {
     }
   };
 
+  // Funciones para documentos iniciales
+  const handleInicialesFileChange = (e) => {
+    setInicialesFile(e.target.files[0]);
+  };
+
+  const handleDocumentTypeChange = (e) => {
+    setSelectedDocumentType(e.target.value);
+  };
+
+  const fetchInicialesFiles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await axios.get(
+        `${config.baseUrl}/inscriptions/iniciales/${recordId}/files`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      setInicialesFiles(response.data.files || []);
+    } catch (error) {
+      console.error('Error obteniendo archivos de documentos iniciales:', error);
+    }
+  };
+
+  const handleInicialesFileUpload = async (e) => {
+    e.preventDefault();
+    if (!inicialesFile || !selectedDocumentType) {
+      alert('Por favor, selecciona un tipo de documento y un archivo');
+      return;
+    }
+    try {
+      const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('id');
+      
+      const formData = new FormData();
+      formData.append('file', inicialesFile);
+      formData.append('documentType', selectedDocumentType);
+      formData.append('user_id', userId);
+
+      await axios.post(
+        `${config.baseUrl}/inscriptions/iniciales/${recordId}/upload`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+
+      alert("Documento inicial subido exitosamente");
+      await fetchInicialesFiles();
+      setInicialesFile(null);
+      setSelectedDocumentType('');
+      setShowInicialesUploadForm(false);
+    } catch (error) {
+      console.error('Error subiendo el documento inicial:', error);
+      setError('Error subiendo el documento inicial');
+    }
+  };
+
+  const handleInicialesFileDelete = async (fileId) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este documento inicial?')) {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(
+          `${config.baseUrl}/inscriptions/iniciales/${recordId}/file/${fileId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        await fetchInicialesFiles();
+      } catch (error) {
+        console.error('Error eliminando el documento inicial:', error);
+        setError('Error eliminando el documento inicial');
+      }
+    }
+  };
+
   const handleOpenComplianceModal = (file) => {
     setSelectedFileForCompliance(file);
-    setComplianceCumple(
-      file.cumple === 'true' || file.cumple === true || file.cumple === 1
-        ? true
-        : file.cumple === 'false' || file.cumple === false || file.cumple === 0
-        ? false
-        : null
-    );
+    
+    const newCumpleValue = file.cumple === 'true' || file.cumple === true || file.cumple === 1
+      ? true
+      : file.cumple === 'false' || file.cumple === false || file.cumple === 0
+      ? false
+      : null;
+    
+    setComplianceCumple(newCumpleValue);
     setComplianceDescripcion(file['descripcion cumplimiento'] || '');
   };
 
@@ -453,8 +558,19 @@ export default function DynamicRecordEdit() {
   const handleSaveCompliance = async () => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Determinar si es un documento inicial basado en el source
+      const isInicialesFile = selectedFileForCompliance.source === 'documentos_iniciales';
+      
+      let endpoint;
+      if (isInicialesFile) {
+        endpoint = `${config.baseUrl}/inscriptions/iniciales/${recordId}/file/${selectedFileForCompliance.id}/compliance`;
+      } else {
+        endpoint = `${config.urls.tables}/${tableName}/record/${recordId}/file/${selectedFileForCompliance.id}/compliance`;
+      }
+      
       await axios.put(
-        `${config.urls.tables}/${tableName}/record/${recordId}/file/${selectedFileForCompliance.id}/compliance`,
+        endpoint,
         {
           cumple: complianceCumple,
           descripcion_cumplimiento: complianceDescripcion,
@@ -466,17 +582,32 @@ export default function DynamicRecordEdit() {
         }
       );
 
-      setUploadedFiles((prevFiles) =>
-        prevFiles.map((file) =>
-          file.id === selectedFileForCompliance.id
-            ? {
-                ...file,
-                cumple: complianceCumple,
-                'descripcion cumplimiento': complianceDescripcion,
-              }
-            : file
-        )
-      );
+      // Actualizar el estado local según el tipo de archivo
+      if (isInicialesFile) {
+        setInicialesFiles((prevFiles) =>
+          prevFiles.map((file) =>
+            file.id === selectedFileForCompliance.id
+              ? {
+                  ...file,
+                  cumple: complianceCumple,
+                  'descripcion cumplimiento': complianceDescripcion,
+                }
+              : file
+          )
+        );
+      } else {
+        setUploadedFiles((prevFiles) =>
+          prevFiles.map((file) =>
+            file.id === selectedFileForCompliance.id
+              ? {
+                  ...file,
+                  cumple: complianceCumple,
+                  'descripcion cumplimiento': complianceDescripcion,
+                }
+              : file
+          )
+        );
+      }
 
       handleCloseComplianceModal();
     } catch (error) {
@@ -982,6 +1113,7 @@ export default function DynamicRecordEdit() {
                     )}
                   </div>
 
+                  {/* Sección de Archivos adicionales - OCULTA TEMPORALMENTE
                   <div className="mt-4" style={{ width: '100%' }}>
                     <h5>Archivos adicionales</h5>
                     {!showUploadForm && role !== '3' && (
@@ -1105,6 +1237,128 @@ export default function DynamicRecordEdit() {
                             </li>
                           );
                         })}
+                      </ul>
+                    )}
+                  </div>
+                  */}
+
+                  <div className="mt-4" style={{ width: '100%' }}>
+                    <h5>Documentos Iniciales</h5>
+                    {!showInicialesUploadForm && role !== '3' && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm btn-block mb-2"
+                        onClick={() => setShowInicialesUploadForm(true)}
+                      >
+                        Subir documento inicial
+                      </button>
+                    )}
+
+                    {showInicialesUploadForm && role !== '3' && (
+                      <form onSubmit={handleInicialesFileUpload}>
+                        <div className="form-group">
+                          <label>Tipo de Documento</label>
+                          <select
+                            className="form-control"
+                            value={selectedDocumentType}
+                            onChange={handleDocumentTypeChange}
+                          >
+                            <option value="">-- Selecciona un tipo de documento --</option>
+                            {documentTypeOptions.map(option => (
+                              <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Seleccionar archivo</label>
+                          <input
+                            type="file"
+                            className="form-control"
+                            onChange={handleInicialesFileChange}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="btn btn-success btn-sm btn-block mb-2"
+                        >
+                          Cargar documento inicial
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm btn-block"
+                          onClick={() => setShowInicialesUploadForm(false)}
+                        >
+                          Cancelar
+                        </button>
+                      </form>
+                    )}
+
+                    {inicialesFiles.length > 0 && (
+                      <ul className="list-group mt-3">
+                        {inicialesFiles.map(file => (
+                          <li key={file.id} className="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                              <strong>{file.name}</strong>
+                              <br />
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                Ver documento
+                              </a>
+                              <br />
+                              <span
+                                className="badge"
+                                style={{
+                                  backgroundColor:
+                                    file.cumple === true ||
+                                    file.cumple === 'true' ||
+                                    file.cumple === 1
+                                      ? 'green'
+                                      : file.cumple === false ||
+                                        file.cumple === 'false' ||
+                                        file.cumple === 0
+                                      ? 'red'
+                                      : 'gray',
+                                  color: '#fff',
+                                  padding: '5px',
+                                  borderRadius: '5px',
+                                  cursor: 'pointer',
+                                  marginTop: '5px',
+                                  display: 'inline-block',
+                                }}
+                                onClick={() =>
+                                  role !== '3' && handleOpenComplianceModal(file)
+                                }
+                              >
+                                {file.cumple === true ||
+                                file.cumple === 'true' ||
+                                file.cumple === 1
+                                  ? 'Cumple'
+                                  : file.cumple === false ||
+                                    file.cumple === 'false' ||
+                                    file.cumple === 0
+                                  ? 'No Cumple'
+                                  : 'Cumplimiento'}
+                              </span>
+                              {file['descripcion cumplimiento'] && (
+                                <p style={{ marginTop: '5px' }}>
+                                  <strong>Descripción:</strong>{' '}
+                                  {file['descripcion cumplimiento']}
+                                </p>
+                              )}
+                            </div>
+                            {role !== '3' && (
+                              <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => handleInicialesFileDelete(file.id)}
+                              >
+                                Eliminar
+                              </button>
+                            )}
+                          </li>
+                        ))}
                       </ul>
                     )}
                   </div>
