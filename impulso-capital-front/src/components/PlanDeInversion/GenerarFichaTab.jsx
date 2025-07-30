@@ -15,7 +15,11 @@ export default function GenerarFichaTab({ id }) {
   const [caracterizacionData, setCaracterizacionData] = useState({});
   const [datosTab, setDatosTab] = useState({});
   const [propuestaMejoraData, setPropuestaMejoraData] = useState([]);
+  const [activosActualesData, setActivosActualesData] = useState([]);
   const [formulacionData, setFormulacionData] = useState([]);
+  const [formulacionProvData, setFormulacionProvData] = useState([]);
+  const [providersData, setProvidersData] = useState([]);
+  const [elementosData, setElementosData] = useState([]);
   const [groupedRubros, setGroupedRubros] = useState([]);
   const [totalInversion, setTotalInversion] = useState(0);
   const [relatedData, setRelatedData] = useState({});
@@ -83,13 +87,21 @@ export default function GenerarFichaTab({ id }) {
           fieldsResponse,
           datosResponse,
           propuestaMejoraResponse,
-          formulacionResponse
+          activosActualesResponse,
+          formulacionResponse,
+          formulacionProvResponse,
+          providersResponse,
+          elementosResponse
         ] = await Promise.all([
           axios.get(`${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/inscription_caracterizacion/related-data`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/pi_datos/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/pi_propuesta_mejora/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.pi}/tables/pi_activos/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/pi_formulacion/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.pi}/tables/pi_formulacion_prov/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.base}/tables/provider_proveedores/records`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.base}/tables/provider_elemento/records`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         // 1. Procesar datos de `inscription_caracterizacion`
@@ -152,11 +164,25 @@ export default function GenerarFichaTab({ id }) {
         setPropuestaMejoraData(propuestaMejoraResponse.data);
         console.log("Datos de pi_propuesta_mejora:", propuestaMejoraResponse.data);
 
-        // 8. Procesar datos de `pi_formulacion`
+        // 8. Procesar datos de `pi_activos` (Activos Actuales)
+        setActivosActualesData(activosActualesResponse.data);
+        console.log("Datos de pi_activos:", activosActualesResponse.data);
+
+        // 9. Procesar datos de `pi_formulacion`
         setFormulacionData(formulacionResponse.data);
         console.log("Datos de pi_formulacion:", formulacionResponse.data);
 
-        // 9. Agrupar Rubros y calcular total inversión
+        // 10. Procesar datos de `pi_formulacion_prov`
+        setFormulacionProvData(formulacionProvResponse.data);
+        console.log("Datos de pi_formulacion_prov:", formulacionProvResponse.data);
+
+        // 11. Procesar datos de proveedores y elementos
+        setProvidersData(providersResponse.data);
+        setElementosData(elementosResponse.data);
+        console.log("Datos de proveedores:", providersResponse.data);
+        console.log("Datos de elementos:", elementosResponse.data);
+
+        // 12. Agrupar Rubros y calcular total inversión
         const rubrosOptions = [
           "Maquinaria y equipo",
           "Insumos/Materias primas",
@@ -210,7 +236,7 @@ export default function GenerarFichaTab({ id }) {
   };
 
   // Color de las tablas
-  const tableColor = [230, 26, 78]; // #E61A4E
+      const tableColor = [18, 11, 42]; // #120b2a
 
   // Función para generar el PDF completo
   const generateFichaPDF = () => {
@@ -223,7 +249,7 @@ export default function GenerarFichaTab({ id }) {
     const fontSizes = {
       title: 18,
       subtitle: 14,
-      normal: 12,
+      normal: 11,
     };
 
     // Función para convertir imagen a base64
@@ -234,6 +260,19 @@ export default function GenerarFichaTab({ id }) {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
       return canvas.toDataURL('image/jpeg');
+    };
+
+    // Función para obtener el tipo de documento
+    const getTipoDocumento = (tipoId) => {
+      // Mapeo directo de tipos de documento comunes
+      const tipoMap = {
+        '1': 'Cédula de Ciudadanía',
+        '2': 'Tarjeta de Identidad',
+        '3': 'Cédula de Extranjería',
+        '4': 'Pasaporte',
+        '5': 'NIT'
+      };
+      return tipoMap[tipoId] || `Tipo ${tipoId}`;
     };
 
     // Cargar la imagen y generar el PDF después
@@ -250,44 +289,180 @@ export default function GenerarFichaTab({ id }) {
       const nombreEmprendimiento = caracterizacionData["Nombre del emprendimiento"] || 'No disponible';
       const caracterizacionId = id || 'No disponible';
 
-      // Agregar Nombre del Emprendimiento
+      // Agregar Nombre del Emprendimiento con ID
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
-      doc.text(nombreEmprendimiento, pageWidth / 2, yPosition, { align: 'center' });
+      const tituloCompleto = `${nombreEmprendimiento} - ID: ${caracterizacionId}`;
+      doc.text(tituloCompleto, pageWidth / 2, yPosition, { align: 'center' });
 
       yPosition += 20;
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
 
-      // Agregar ID y Localidad al lado: "ID: 123 - Localidad: Kennedy"
+      // Agregar Localidad
       const localidadLabel = localidadName && localidadName !== "Localidad no encontrada"
-        ? ` - Localidad: ${localidadName}`
+        ? `Localidad: ${localidadName}`
         : '';
-      const idLocalidadText = `ID: ${caracterizacionId}${localidadLabel}`;
+      
+      if (localidadLabel) {
+        doc.text(localidadLabel, pageWidth / 2, yPosition, { align: 'center' });
+      }
+      yPosition += 20;
 
-      doc.text(idLocalidadText, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 30;
+      // Información del beneficiario
+      const nombreBeneficiario = [
+        caracterizacionData["Nombres"] || '',
+        caracterizacionData["Apellidos"] || ''
+      ].filter(Boolean).join(' ') || 'No disponible';
+      
+      const tipoDocumento = getTipoDocumento(caracterizacionData["Tipo de identificacion"]);
+      const numeroDocumento = caracterizacionData["Numero de identificacion"] || 'No disponible';
+      const grupoParticipacion = caracterizacionData["Priorizacion capitalizacion"] || 'No disponible';
+
+      // Calcular posiciones para dos columnas
+      const columnWidth = (pageWidth - 2 * margin) / 2;
+      const leftX = margin;
+      const rightX = margin + columnWidth + 10; // 10px de separación entre columnas
+
+      // Información del beneficiario en formato de dos columnas
+      const beneficiarioEtiquetas1 = ['Nombre del beneficiario:', 'Grupo de participación:'];
+      const beneficiarioValores1 = [nombreBeneficiario, grupoParticipacion];
+      const beneficiarioEtiquetas2 = ['Tipo de documento:', 'Número de documento:'];
+      const beneficiarioValores2 = [tipoDocumento, numeroDocumento];
+
+      // Fila 1: Etiquetas
+      doc.setFont(undefined, 'bold');
+      doc.text(beneficiarioEtiquetas1[0], leftX, yPosition);
+      doc.text(beneficiarioEtiquetas1[1], rightX, yPosition);
+      yPosition += 15;
+      // Fila 2: Valores
+      doc.setFont(undefined, 'normal');
+      doc.text(beneficiarioValores1[0], leftX, yPosition);
+      doc.text(beneficiarioValores1[1], rightX, yPosition);
+      yPosition += 20;
+      // Fila 3: Etiquetas
+      doc.setFont(undefined, 'bold');
+      doc.text(beneficiarioEtiquetas2[0], leftX, yPosition);
+      doc.text(beneficiarioEtiquetas2[1], rightX, yPosition);
+      yPosition += 15;
+      // Fila 4: Valores
+      doc.setFont(undefined, 'normal');
+      doc.text(beneficiarioValores2[0], leftX, yPosition);
+      doc.text(beneficiarioValores2[1], rightX, yPosition);
+      yPosition += 20;
+
+      // Espacio antes del título principal
+      yPosition += 20;
 
       // 1. Título Principal (cambiado a: PLAN DE INVERSIÓN DEL EMPRENDIMIENTO)
       doc.setFontSize(fontSizes.title);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(0, 0, 0);
-      doc.text("PLAN DE INVERSIÓN DEL EMPRENDIMIENTO", pageWidth / 2, yPosition, { align: 'center' });
+      doc.text("Plan de Inversión", pageWidth / 2, yPosition, { align: 'center' });
 
-      yPosition += 30;
+      yPosition += 20;
 
       // 2. Mostrar información de datosTab (filtrando campos no deseados)
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
-      yPosition += 20;
+      yPosition += 15;
 
       const piDatosFields = Object.keys(datosTab).filter(
         (key) => !datosKeys.includes(key) && key !== 'caracterizacion_id'
       );
 
+      // Mapeo de nombres de campos para mostrar etiquetas más amigables (igual que en DatosTab)
+      const fieldNameMapping = {
+        'sector': 'Pertenece a el sector',
+        'priorizado': 'Priorizado',
+        'tiempo_dedicacion': 'Tiempo de dedicación al negocio',
+        'tiempo_funcionamiento': 'Tiempo de funcionamiento del negocio local',
+        'valor_ingresos_ventas': 'Valor aproximado de ingreso-ventas',
+        'valor_activos': 'Valor aproximado de activos',
+        'valor_gastos_costos': 'Valor aproximado de gastos-costos',
+        'valor_utilidad_margen': 'Valor total de utilidad-margen',
+        'valor_gastos_familiares': 'Valor gastos familiares mensuales promedio',
+        'descripcion_negocio': 'Descripción general del negocio',
+        'descripcion_lugar_actividad': 'Descripción del lugar donde desarrolla la actividad',
+        'descripcion_capacidad_produccion': 'Descripción de la capacidad de producción'
+      };
+
+      // Función para obtener el nombre de visualización de un campo
+      const getDisplayName = (fieldName) => {
+        return fieldNameMapping[fieldName] || fieldName;
+      };
+
+      // Función para verificar si un campo debe ocupar toda la fila
+      const isFullWidthField = (fieldName) => {
+        const fullWidthFields = [
+          'descripcion_negocio',
+          'descripcion_lugar_actividad', 
+          'descripcion_capacidad_produccion'
+        ];
+        return fullWidthFields.includes(fieldName);
+      };
+
       if (piDatosFields.length > 0) {
-        piDatosFields.forEach((key) => {
-          let label = `${key}:`;
+        // Separar campos en dos grupos: normales y de ancho completo
+        const normalFields = piDatosFields.filter(field => !isFullWidthField(field));
+        const fullWidthFields = piDatosFields.filter(field => isFullWidthField(field));
+
+        // Procesar campos normales en pares (dos columnas)
+        for (let i = 0; i < normalFields.length; i += 2) {
+          const leftField = normalFields[i];
+          const rightField = normalFields[i + 1];
+          
+          const leftLabel = `${getDisplayName(leftField)}:`;
+          const leftValue = datosTab[leftField] || 'No disponible';
+          
+          // Calcular posiciones para dos columnas
+          const columnWidth = (pageWidth - 2 * margin) / 2;
+          const leftX = margin;
+          const rightX = margin + columnWidth + 10; // 10px de separación entre columnas
+          
+          // Verificar si necesitamos nueva página
+          yPosition = checkPageEnd(doc, yPosition, 40); // Espacio estimado para la fila
+          
+          // Guardar la posición Y inicial para esta fila
+          const rowStartY = yPosition;
+          
+          // Dibujar campo izquierdo
+          doc.setFont(undefined, 'bold');
+          const leftLabelLines = doc.splitTextToSize(leftLabel, columnWidth);
+          doc.text(leftLabelLines, leftX, yPosition);
+          yPosition += leftLabelLines.length * 14;
+
+          doc.setFont(undefined, 'normal');
+          const leftValueLines = doc.splitTextToSize(leftValue, columnWidth);
+          doc.text(leftValueLines, leftX, yPosition);
+          
+          // Dibujar campo derecho (si existe) alineado con el izquierdo
+          if (rightField) {
+            const rightLabel = `${getDisplayName(rightField)}:`;
+            const rightValue = datosTab[rightField] || 'No disponible';
+            
+            // Usar la misma posición Y inicial para alinear perfectamente
+            doc.setFont(undefined, 'bold');
+            const rightLabelLines = doc.splitTextToSize(rightLabel, columnWidth);
+            doc.text(rightLabelLines, rightX, rowStartY);
+            
+            doc.setFont(undefined, 'normal');
+            const rightValueLines = doc.splitTextToSize(rightValue, columnWidth);
+            doc.text(rightValueLines, rightX, rowStartY + rightLabelLines.length * 14);
+          }
+          
+          // Calcular la altura máxima de esta fila para mover a la siguiente
+          const leftHeight = leftLabelLines.length * 14 + leftValueLines.length * 14;
+          const rightHeight = rightField ? 
+            doc.splitTextToSize(`${getDisplayName(rightField)}:`, columnWidth).length * 14 + 
+            doc.splitTextToSize(datosTab[rightField] || 'No disponible', columnWidth).length * 14 : 0;
+          
+          yPosition = rowStartY + Math.max(leftHeight, rightHeight) + 10;
+        }
+
+        // Procesar campos de ancho completo (descripciones)
+        fullWidthFields.forEach((key) => {
+          let label = `${getDisplayName(key)}:`;
           let value = datosTab[key] || 'No disponible';
 
           // Evitar mostrar "ID: " si viene con un prefijo raro
@@ -307,15 +482,7 @@ export default function GenerarFichaTab({ id }) {
           const valueLines = doc.splitTextToSize(value, maxLineWidth);
           yPosition = checkPageEnd(doc, yPosition, valueLines.length * 14);
           doc.text(valueLines, margin, yPosition);
-          yPosition += valueLines.length * 14 + 5;
-
-          // Espacio adicional si es "descripcion del negocio" u "objetivo del plan de inversion"
-          if (
-            key.toLowerCase() === 'descripcion del negocio' ||
-            key.toLowerCase() === 'objetivo del plan de inversion'
-          ) {
-            yPosition += 10;
-          }
+          yPosition += valueLines.length * 14 + 10;
         });
       } else {
         doc.text("No hay datos generales del negocio disponibles.", margin, yPosition);
@@ -326,7 +493,7 @@ export default function GenerarFichaTab({ id }) {
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 20;
-      doc.text("PROPUESTA DE MEJORA SOBRE EL DIAGNÓSTICO REALIZADO", pageWidth / 2, yPosition, { align: 'center' });
+      doc.text("Diagnóstico del negocio y Propuesta de Mejora", pageWidth / 2, yPosition, { align: 'center' });
 
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
@@ -334,13 +501,15 @@ export default function GenerarFichaTab({ id }) {
 
       if (propuestaMejoraData.length > 0) {
         const propuestaHeaders = [
-          { header: 'Área de Fortalecimiento', dataKey: 'area' },
-          { header: 'Descripción', dataKey: 'descripcion' },
-          { header: 'Propuesta', dataKey: 'propuesta' },
+          { header: 'Área de\nFortalecimiento', dataKey: 'area' },
+          { header: '¿Requiere acción\nde mejora?', dataKey: 'evaluacion' },
+          { header: 'Descripción del área crítica por área de fortalecimiento', dataKey: 'descripcion' },
+          { header: 'Propuesta de Mejora', dataKey: 'propuesta' },
         ];
 
         const propuestaBody = propuestaMejoraData.map(item => ({
           area: item["Area de fortalecimiento"] || 'No disponible',
+          evaluacion: item["Evaluacion"] || 'No disponible',
           descripcion: item["Descripcion del area critica por area de fortalecimiento"] || 'No disponible',
           propuesta: item["Propuesta de mejora"] || 'No disponible',
         }));
@@ -350,10 +519,27 @@ export default function GenerarFichaTab({ id }) {
           head: [propuestaHeaders.map(col => col.header)],
           body: propuestaBody.map(row => propuestaHeaders.map(col => row[col.dataKey])),
           theme: 'striped',
-          styles: { fontSize: fontSizes.normal, cellPadding: 4 },
+          styles: { 
+            fontSize: fontSizes.normal, 
+            cellPadding: 4,
+            lineWidth: 0.5,
+            lineColor: [200, 200, 200]
+          },
           tableWidth: 'auto',
-          headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+          headStyles: { 
+            fillColor: tableColor, 
+            textColor: [255, 255, 255], 
+            fontStyle: 'bold',
+            halign: 'center', // Centrar todos los headers por defecto
+            valign: 'middle' // Centrar verticalmente los headers
+          },
           margin: { left: margin, right: margin },
+          columnStyles: {
+            0: { halign: 'center', cellWidth: 97 }, // Área de Fortalecimiento
+            1: { halign: 'center', cellWidth: 80 }, // ¿Requiere acción de mejora?
+            2: { halign: 'left', cellWidth: 168 },   // Descripción del área crítica
+            3: { halign: 'left', cellWidth: 168 }    // Propuesta de Mejora
+          },
           didDrawPage: (data) => {
             yPosition = data.cursor.y;
           },
@@ -365,46 +551,164 @@ export default function GenerarFichaTab({ id }) {
         yPosition += 14;
       }
 
-      // 4. FORMULACIÓN DE INVERSIÓN
+      // 4. ACTIVOS ACTUALES
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 20;
-      doc.text("FORMULACIÓN DE INVERSIÓN", pageWidth / 2, yPosition, { align: 'center' });
+      doc.text("Activos Actuales del Negocio", pageWidth / 2, yPosition, { align: 'center' });
 
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
       yPosition += 20;
 
-      if (formulacionData.length > 0) {
-        const formulacionHeaders = [
-          { header: 'Rubro', dataKey: 'rubro' },
-          { header: 'Elemento', dataKey: 'elemento' },
-          { header: 'Descripción', dataKey: 'descripcion' },
-          { header: 'Cantidad', dataKey: 'cantidad' },
-          { header: 'Valor Unitario', dataKey: 'valorUnitario' },
-          { header: 'Valor Total', dataKey: 'valorTotal' },
+      if (activosActualesData.length > 0) {
+        const activosHeaders = [
+          { header: 'No', dataKey: 'numero' },
+          { header: 'Nombre del activo', dataKey: 'equipo' },
+          { header: 'Descripción técnica', dataKey: 'descripcion' },
+          { header: 'Vida útil', dataKey: 'vidaUtil' },
+          { header: 'Frecuencia de uso', dataKey: 'frecuenciaUso' },
+          { header: 'Elemento para reposición', dataKey: 'elementoReposicion' },
         ];
 
-        const formulacionBody = formulacionData.map(item => ({
-          rubro: item["Rubro"] || 'No disponible',
-          elemento: item["Elemento"] || 'No disponible',
-          descripcion: item["Descripción"] || 'No disponible',
-          cantidad: item["Cantidad"] ? item["Cantidad"].toLocaleString() : '0',
-          valorUnitario: item["Valor Unitario"] ? `$${item["Valor Unitario"].toLocaleString()}` : '$0',
-          valorTotal: item["Cantidad"] && item["Valor Unitario"]
-            ? `$${(item["Cantidad"] * item["Valor Unitario"]).toLocaleString()}`
-            : '$0',
+        const activosBody = activosActualesData.map((item, index) => ({
+          numero: (index + 1).toString(),
+          equipo: item["Equipo"] || 'No disponible',
+          descripcion: item["Descripcion"] || 'No disponible',
+          vidaUtil: item["Vida util"] || 'No disponible',
+          frecuenciaUso: item["Frecuencia de uso"] || 'No disponible',
+          elementoReposicion: item["Elemento para reposicion"] || 'No disponible',
         }));
+
+        doc.autoTable({
+          startY: yPosition,
+          head: [activosHeaders.map(col => col.header)],
+          body: activosBody.map(row => activosHeaders.map(col => row[col.dataKey])),
+          theme: 'striped',
+          styles: { 
+            fontSize: fontSizes.normal, 
+            cellPadding: 4,
+            lineWidth: 0.5,
+            lineColor: [200, 200, 200]
+          },
+          tableWidth: 'auto',
+          headStyles: { 
+            fillColor: tableColor, 
+            textColor: [255, 255, 255], 
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle'
+          },
+          margin: { left: margin, right: margin },
+          columnStyles: {
+            0: { halign: 'center', cellWidth: 25 }, // No
+            1: { halign: 'left', cellWidth: 140 },   // Nombre del activo
+            2: { halign: 'left', cellWidth: 150 },  // Descripción técnica
+            3: { halign: 'left', cellWidth: 60 },   // Vida útil
+            4: { halign: 'center', cellWidth: 70 }, // Frecuencia de uso
+            5: { halign: 'center', cellWidth: 70 }  // Elemento para reposición
+          },
+          didDrawPage: (data) => {
+            yPosition = data.cursor.y;
+          },
+        });
+
+        yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
+      } else {
+        doc.text("No hay activos actuales registrados.", margin, yPosition);
+        yPosition += 14;
+      }
+
+      // 5. FORMULACIÓN DE INVERSIÓN
+      doc.setFontSize(fontSizes.subtitle);
+      doc.setFont(undefined, 'bold');
+      yPosition += 20;
+      doc.text("Formulación Plan de Inversión", pageWidth / 2, yPosition, { align: 'center' });
+
+      doc.setFontSize(fontSizes.normal);
+      doc.setFont(undefined, 'normal');
+      yPosition += 20;
+
+      // Funciones helper para obtener nombres
+      const getElementoName = (elementoId) => {
+        const elemento = elementosData.find(el => String(el.id) === String(elementoId));
+        return elemento ? elemento.Elemento : 'Desconocido';
+      };
+
+      const getProviderInfo = (providerId) => {
+        const provider = providersData.find(p => String(p.id) === String(providerId));
+        if (!provider) return { elemento: 'Desconocido', descripcion: 'No disponible' };
+        
+        return {
+          elemento: getElementoName(provider.Elemento),
+          descripcion: provider["Descripcion corta"] || 'No disponible'
+        };
+      };
+
+      // Filtrar solo los registros seleccionados de pi_formulacion_prov
+      const selectedFormulacionProv = formulacionProvData.filter(item => item.Seleccion === true);
+
+      if (selectedFormulacionProv.length > 0) {
+        const formulacionHeaders = [
+          { header: 'Tipo de bien', dataKey: 'tipoBien' },
+          { header: 'Bien\nseleccionado', dataKey: 'bienSeleccionado' },
+          { header: 'Descripción del bien', dataKey: 'descripcionBien' },
+          { header: 'Cantidad', dataKey: 'cantidad' },
+          { header: 'Descripción dimensiones', dataKey: 'descripcionDimensiones' },
+          { header: 'Justificación', dataKey: 'justificacion' },
+        ];
+
+        const formulacionBody = selectedFormulacionProv.map(item => {
+          const providerInfo = getProviderInfo(item.rel_id_prov);
+          
+          // Lógica para determinar el tipo de bien
+          let tipoBien = 'Sin prioridad';
+          if (item.selectionorder) {
+            if (item.selectionorder === 1) {
+              tipoBien = 'Primario';
+            } else if (item.selectionorder >= 2 && item.selectionorder <= 4) {
+              tipoBien = 'Complementario';
+            }
+          }
+          
+          return {
+            tipoBien: tipoBien,
+            bienSeleccionado: providerInfo.elemento,
+            descripcionBien: providerInfo.descripcion,
+            cantidad: item.Cantidad ? item.Cantidad.toString() : '1',
+            descripcionDimensiones: item["Descripcion dimensiones"] || 'No disponible',
+            justificacion: item.Justificacion || 'No disponible',
+          };
+        });
 
         doc.autoTable({
           startY: yPosition,
           head: [formulacionHeaders.map(col => col.header)],
           body: formulacionBody.map(row => formulacionHeaders.map(col => row[col.dataKey])),
           theme: 'striped',
-          styles: { fontSize: fontSizes.normal, cellPadding: 4 },
+          styles: { 
+            fontSize: fontSizes.normal, 
+            cellPadding: 4,
+            lineWidth: 0.5,
+            lineColor: [200, 200, 200]
+          },
           tableWidth: 'auto',
-          headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+          headStyles: { 
+            fillColor: tableColor, 
+            textColor: [255, 255, 255], 
+            fontStyle: 'bold',
+            halign: 'center', // Centrado horizontal
+            valign: 'middle'  // Centrado vertical
+          },
           margin: { left: margin, right: margin },
+          columnStyles: {
+            0: { halign: 'center', cellWidth: 58 }, // Tipo de bien
+            1: { halign: 'left', cellWidth: 85 },   // Bien seleccionado
+            2: { halign: 'left', cellWidth: 110 },  // Descripción del bien
+            3: { halign: 'center', cellWidth: 60 }, // Cantidad
+            4: { halign: 'left', cellWidth: 100 },  // Descripción dimensiones
+            5: { halign: 'left', cellWidth: 100 }   // Justificación
+          },
           didDrawPage: (data) => {
             yPosition = data.cursor.y;
           },
@@ -416,7 +720,8 @@ export default function GenerarFichaTab({ id }) {
         yPosition += 14;
       }
 
-      // 5. RESUMEN DE LA INVERSIÓN
+      // 6. RESUMEN DE LA INVERSIÓN (OCULTO)
+      /*
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 20;
@@ -437,7 +742,12 @@ export default function GenerarFichaTab({ id }) {
           return [row.rubro, valorFormateado];
         }),
         theme: 'striped',
-        styles: { fontSize: fontSizes.normal, cellPadding: 4 },
+        styles: { 
+          fontSize: fontSizes.normal, 
+          cellPadding: 4,
+          lineWidth: 0.5,
+          lineColor: [200, 200, 200]
+        },
         tableWidth: 'auto',
         headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
         margin: { left: margin, right: margin },
@@ -460,7 +770,12 @@ export default function GenerarFichaTab({ id }) {
         head: [["Concepto", "Valor"]],
         body: datosInversion,
         theme: 'striped',
-        styles: { fontSize: fontSizes.normal, cellPadding: 4 },
+        styles: { 
+          fontSize: fontSizes.normal, 
+          cellPadding: 4,
+          lineWidth: 0.5,
+          lineColor: [200, 200, 200]
+        },
         tableWidth: 'auto',
         headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
         margin: { left: margin, right: margin },
@@ -470,12 +785,13 @@ export default function GenerarFichaTab({ id }) {
       });
 
       yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
+      */
 
-      // 6. CONCEPTO DE VIABILIDAD DE PLAN DE INVERSIÓN
+      // 7. CONCEPTO DE VIABILIDAD DE PLAN DE INVERSIÓN
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 30;
-      doc.text("CONCEPTO DE VIABILIDAD DE PLAN DE INVERSIÓN", pageWidth / 2, yPosition, { align: 'center' });
+      doc.text("Concepto de viabilidad", pageWidth / 2, yPosition, { align: 'center' });
 
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
@@ -483,13 +799,10 @@ export default function GenerarFichaTab({ id }) {
 
       // Actualizar textoViabilidad con el nuevo contenido
       const textoViabilidad = [
-        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial del beneficiario denominado ${nombreEmprendimiento} y haciendo parte del equipo ejecutor del programa "Impulso Local 4.0" que emana del Convenio Interadministrativo suscrito entre la Corporación para el Desarrollo de las Microempresas – PROPAIS y el Fondo de desarrollo local, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa.`,
+        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial y haciendo parte del equipo ejecutor del programa " Emprendópolis" que emana del Convenio Interadministrativo entre PROPAIS y SDDE Secretaria de Desarrollo Económico, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa`,
         "",
-        "NOTA: Declaro que toda la información sobre el plan de inversión aquí consignada fue diligenciada en conjunto con el asesor empresarial a cargo, está de acuerdo con las condiciones del negocio, es verdadera, completa y correcta, la cual puede ser verificada en cualquier momento.",
+        "NOTA: Como asesor empresarial asignado , declaro que toda la información consignada en el presente plan de inversión fue diligenciada en conjunto con el propietario del negocio local y que esta corresponde a las condiciones reales evidenciadas en la visita al negocio, es veraz, completa. De igual manera declaro que se bridó asesoría profesional y técnica al negocio local para la elaboración del plan de inversión y sobre las condiciones del programa Emprendópolis.",
         "",
-        "NOTA: En caso de que se presente un incremento en la planeación de los recursos del 20% de la capitalización al momento de la ejecución de esta, por favor revisar en conjunto con el empresario (a) el alcance de los mismos, y reformular si aplica, siempre manteniendo el tope máximo del 20% de la destinación.",
-        "",
-        "NOTA: El beneficiario asegura, mediante la firma del presente documento, que cuenta con el recurso adicional necesario para realizar la adquisición de: los productos, servicios, maquinarias, equipos y/o herramientas que planea adquirir con los recursos de la capitalización, en caso de que estos tengan un valor mayor al entregado por el programa."
       ];
 
       textoViabilidad.forEach(parrafo => {
@@ -503,7 +816,7 @@ export default function GenerarFichaTab({ id }) {
         yPosition += lines.length * 14 + 10;
       });
 
-      // 7. Sección de Firmas
+      // 8. Sección de Firmas
       const firmasSectionHeight = 120;
       yPosition += 10;
       yPosition = checkPageEnd(doc, yPosition, firmasSectionHeight);
@@ -516,36 +829,37 @@ export default function GenerarFichaTab({ id }) {
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
 
-      const boxWidth = 150;
-      const boxHeight = 40;
-      const beneficiarioBoxX = margin + 30;
-      const asesorBoxX = pageWidth - margin - 180;
+              const boxWidth = 150;
+        const boxHeight = 60; // Aumentado de 40 a 60 para más espacio vertical
+        const beneficiarioBoxX = margin + 30;
+        const asesorBoxX = pageWidth / 2 - boxWidth / 2; // Centrar el cuadro del asesor
 
-      doc.text("Beneficiario", beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
-      doc.text("Asesor", asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
+        // doc.text("Beneficiario", beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
+        doc.text("Asesor", asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
 
-      yPosition += 10;
-      doc.rect(beneficiarioBoxX, yPosition, boxWidth, boxHeight);
-      doc.rect(asesorBoxX, yPosition, boxWidth, boxHeight);
+        yPosition += 10;
+        // doc.rect(beneficiarioBoxX, yPosition, boxWidth, boxHeight);
+        // Solo dibujar la línea inferior del cuadro
+        doc.line(asesorBoxX, yPosition + boxHeight, asesorBoxX + boxWidth, yPosition + boxHeight);
 
-      yPosition += boxHeight + 15;
+        yPosition += boxHeight + 15;
 
-      // Si el beneficiario se llama '', lo mostramos en blanco
-      const benefNameToShow = emprendedorNombre.trim() === 'No disponible' ? '' : emprendedorNombre.trim();
-      doc.text(benefNameToShow, beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
+        // Si el beneficiario se llama '', lo mostramos en blanco
+        // const benefNameToShow = emprendedorNombre.trim() === 'No disponible' ? '' : emprendedorNombre.trim();
+        // doc.text(benefNameToShow, beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
 
-      doc.text(asesorNombre, asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
+        doc.text(asesorNombre, asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
 
-      yPosition += 15;
-      // Para la cédula del beneficiario, si no hay nada, dejar en blanco
-      const emprendedorCC = caracterizacionData["Numero de documento de identificacion ciudadano"] || '';
-      const benefCCToShow = emprendedorCC.trim() === 'No disponible' ? '' : `C.C. ${emprendedorCC.trim()}`;
-      doc.text(benefCCToShow, beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
+        yPosition += 15;
+        // Para la cédula del beneficiario, si no hay nada, dejar en blanco
+        // const emprendedorCC = caracterizacionData["Numero de documento de identificacion ciudadano"] || '';
+        // const benefCCToShow = emprendedorCC.trim() === 'No disponible' ? '' : `C.C. ${emprendedorCC.trim()}`;
+        // doc.text(benefCCToShow, beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
 
-      const asesorCCToShow = asesorDocumento === 'No disponible' ? '' : `C.C. ${asesorDocumento}`;
-      doc.text(asesorCCToShow, asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
+        const asesorCCToShow = asesorDocumento === 'No disponible' ? '' : `C.C. ${asesorDocumento}`;
+        doc.text(asesorCCToShow, asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
 
-      // 8. Sección de Fecha y Hora
+      // 9. Sección de Fecha y Hora
       const dateSectionHeight = 30;
       yPosition += 30;
       yPosition = checkPageEnd(doc, yPosition, dateSectionHeight);

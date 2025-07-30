@@ -1311,7 +1311,8 @@ exports.updatePiRecord = async (req, res) => {
 
     const filteredData = {};
     for (const key in updatedData) {
-      if (fields.includes(key) && updatedData[key] !== undefined && updatedData[key] !== null) {
+      // Excluir el campo 'id' ya que es la clave primaria y no debe actualizarse
+      if (fields.includes(key) && updatedData[key] !== undefined && updatedData[key] !== null && key !== 'id') {
         filteredData[key] = updatedData[key];
       }
     }
@@ -2122,8 +2123,8 @@ exports.createTableRecord = async (req, res) => {
 
     // 3. LÓGICA ESPECIAL PARA ALGUNAS TABLAS
     // ------------------------------------------------------------------
-    if (table_name === 'pi_propuesta_mejora' || table_name === 'pi_ejecucion') {
-      // Siempre crear un nuevo registro sin lógica de actualización
+    if (table_name === 'pi_propuesta_mejora' || table_name === 'pi_ejecucion' || table_name === 'pi_activos') {
+      // Siempre crear un nuevo registro sin lógica de actualización (para pi_propuesta_mejora, pi_ejecucion, pi_activos)
       const insertFields = Object.keys(filteredData).map((f) => `"${f}"`).join(', ');
       const insertValues = Object.keys(filteredData).map((_, i) => `$${i + 1}`).join(', ');
 

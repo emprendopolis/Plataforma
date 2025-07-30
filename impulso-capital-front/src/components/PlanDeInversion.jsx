@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import DatosTab from './PlanDeInversion/DatosTab';
 import DiagnosticoTab from './PlanDeInversion/DiagnosticoTab';
 import PropuestaMejoraTab from './PlanDeInversion/PropuestaMejoraTab'; // Nuevo componente
+import ActivosActualesTab from './PlanDeInversion/ActivosActualesTab'; // Nuevo componente
 import CapacitacionTab from './PlanDeInversion/CapacitacionTab';
 import ValidacionesTab from './PlanDeInversion/ValidacionesTab';
 import FormulacionTab from './PlanDeInversion/FormulacionTab';
@@ -52,7 +53,19 @@ export default function PlanDeInversion() {
                   <i className="fas fa-lightbulb"></i> Propuesta de Mejora
                 </a>
               </li>
-              <li className={`nav-item ${activeTab === 'Diagnostico' ? 'active' : ''}`}>
+              <li className={`nav-item ${activeTab === 'ActivosActuales' ? 'active' : ''}`}>
+                <a
+                  href="#"
+                  className="nav-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveTab('ActivosActuales');
+                  }}
+                >
+                  <i className="fas fa-chart-line"></i> Activos actuales
+                </a>
+              </li>
+              {/* <li className={`nav-item ${activeTab === 'Diagnostico' ? 'active' : ''}`}>
                 <a
                   href="#"
                   className="nav-link"
@@ -63,8 +76,8 @@ export default function PlanDeInversion() {
                 >
                   <i className="fas fa-stethoscope"></i> Diagnóstico
                 </a>
-              </li>
-              <li className={`nav-item ${activeTab === 'Capacitacion' ? 'active' : ''}`}>
+              </li> */}
+              {/* <li className={`nav-item ${activeTab === 'Capacitacion' ? 'active' : ''}`}>
                 <a
                   href="#"
                   className="nav-link"
@@ -75,7 +88,7 @@ export default function PlanDeInversion() {
                 >
                   <i className="fas fa-chalkboard-teacher"></i> Capacitación
                 </a>
-              </li>
+              </li> */}
               <li className={`nav-item ${activeTab === 'Validaciones' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -160,7 +173,7 @@ export default function PlanDeInversion() {
                   <i className="fas fa-play-circle"></i> Ejecución
                 </a>
               </li>*/}
-              <li className={`nav-item ${activeTab === 'EncuestaSalida' ? 'active' : ''}`}>
+              {/* <li className={`nav-item ${activeTab === 'EncuestaSalida' ? 'active' : ''}`}>
                 <a
                   href="#"
                   className="nav-link"
@@ -171,7 +184,7 @@ export default function PlanDeInversion() {
                 >
                   <i className="fas fa-poll"></i> Encuesta de Salida
                 </a>
-              </li>
+              </li> */}
               <li className={`nav-item ${activeTab === 'GenerarFicha' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -191,8 +204,9 @@ export default function PlanDeInversion() {
           <div className="plan-de-inversion-tab-content">
             {activeTab === 'Datos' && <DatosTab id={id} />}
             {activeTab === 'PropuestaMejora' && <PropuestaMejoraTab id={id} />}
-            {activeTab === 'Diagnostico' && <DiagnosticoTab id={id} />}
-            {activeTab === 'Capacitacion' && <CapacitacionTab id={id} />}
+            {activeTab === 'ActivosActuales' && <ActivosActualesTab id={id} />}
+            {/* {activeTab === 'Diagnostico' && <DiagnosticoTab id={id} />} */}
+            {/* {activeTab === 'Capacitacion' && <CapacitacionTab id={id} />} */}
             {activeTab === 'Validaciones' && <ValidacionesTab id={id} />}
             {/* {activeTab === 'Formulacion' && <FormulacionTab id={id} />} */}
             {activeTab === 'FormulacionProv' && <FormulacionProvTab id={id} />}
@@ -200,7 +214,7 @@ export default function PlanDeInversion() {
             {/* {activeTab === 'Anexos' && <AnexosTab id={id} />} */}
             {activeTab === 'AnexosV2' && <AnexosV2Tab id={id} />}
             {activeTab === 'Ejecucion' && <EjecucionTab id={id} />}
-            {activeTab === 'EncuestaSalida' && <EncuestaSalidaTab id={id} />}
+            {/* {activeTab === 'EncuestaSalida' && <EncuestaSalidaTab id={id} />} */}
             {activeTab === 'GenerarFicha' && <GenerarFichaTab id={id} />}
           </div>
         </div>

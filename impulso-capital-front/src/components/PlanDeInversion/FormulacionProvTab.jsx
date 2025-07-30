@@ -121,25 +121,37 @@ export default function FormulacionProvTab({ id }) {
         .map((piRecord) => piRecord.rel_id_prov)
         .filter((id) => id !== undefined && id !== null);
 
-      const providerPromises = providerIds.map((providerId) => {
-        const providerUrl = `${config.urls.inscriptions.base}/tables/${tableName}/record/${providerId}`;
-        return axios.get(providerUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const providerPromises = providerIds.map(async (providerId) => {
+        try {
+          const providerUrl = `${config.urls.inscriptions.base}/tables/${tableName}/record/${providerId}`;
+          const response = await axios.get(providerUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          return response.data.record;
+        } catch (error) {
+          console.warn(`Proveedor con ID ${providerId} no encontrado:`, error.message);
+          return null;
+        }
       });
 
-      const providersResponses = await Promise.all(providerPromises);
-      const providersData = providersResponses.map((res) => res.data.record);
+      const providersData = await Promise.all(providerPromises);
 
       const combinedData = piRecords.map((piRecord) => {
         const providerData = providersData.find(
-          (provider) => String(provider.id) === String(piRecord.rel_id_prov)
+          (provider) => provider && String(provider.id) === String(piRecord.rel_id_prov)
         );
         return {
           ...piRecord,
-          providerData,
+          providerData: providerData || null,
         };
       });
+
+      // Filtrar registros que tienen proveedores válidos para mostrar en la tabla
+      const validRecords = combinedData.filter(record => record.providerData !== null);
+      
+      if (validRecords.length < combinedData.length) {
+        console.warn(`${combinedData.length - validRecords.length} registros tienen proveedores que no existen y serán omitidos.`);
+      }
 
       setPiFormulacionRecords(combinedData);
     } catch (error) {
@@ -233,8 +245,18 @@ export default function FormulacionProvTab({ id }) {
         recordData.id = res.data.id;
       }
 
-      // Refrescar los datos después de la actualización
-      await fetchPiFormulacionRecords();
+      // Actualizar el estado local en lugar de recargar todos los datos
+      setPiFormulacionRecords(prevRecords => {
+        return prevRecords.map(prevRecord => {
+          if (String(prevRecord.rel_id_prov) === String(recordId)) {
+            return {
+              ...prevRecord,
+              Cantidad: cantidad
+            };
+          }
+          return prevRecord;
+        });
+      });
     } catch (error) {
       console.error('Error al cambiar la cantidad:', error);
     }
@@ -294,8 +316,22 @@ export default function FormulacionProvTab({ id }) {
         recordData.id = res.data.id;
       }
 
-      // Refrescar los datos después de la actualización
-      await fetchPiFormulacionRecords();
+      // Solo actualizar el estado local si no es un checkbox (para evitar doble actualización)
+      if (field !== "pre-Seleccion" && field !== "Seleccion") {
+        setPiFormulacionRecords(prevRecords => {
+          return prevRecords.map(prevRecord => {
+            if (String(prevRecord.rel_id_prov) === String(record.id)) {
+              return {
+                ...prevRecord,
+                [field]: value,
+                ...(field === "Seleccion" && value === true ? { selectionorder: recordData.selectionorder } : {}),
+                ...(field === "Seleccion" && value === false ? { selectionorder: null } : {})
+              };
+            }
+            return prevRecord;
+          });
+        });
+      }
     } catch (error) {
       console.error('Error al cambiar la aprobación:', error);
     }
@@ -496,13 +532,23 @@ export default function FormulacionProvTab({ id }) {
                         <input
                           type="checkbox"
                           checked={piData["pre-Seleccion"] || false}
-                          onChange={(e) =>
-                            handleApprovalChange(
-                              record,
-                              "pre-Seleccion",
-                              e.target.checked
-                            )
-                          }
+                          onChange={(e) => {
+                            const newValue = e.target.checked;
+                            // Actualizar inmediatamente el estado local
+                            setPiFormulacionRecords(prevRecords => {
+                              return prevRecords.map(prevRecord => {
+                                if (String(prevRecord.rel_id_prov) === String(record.id)) {
+                                  return {
+                                    ...prevRecord,
+                                    "pre-Seleccion": newValue
+                                  };
+                                }
+                                return prevRecord;
+                              });
+                            });
+                            // Luego hacer la llamada al servidor
+                            handleApprovalChange(record, "pre-Seleccion", newValue);
+                          }}
                           disabled={isRole3}
                         />
                       </td>
@@ -510,13 +556,25 @@ export default function FormulacionProvTab({ id }) {
                         <input
                           type="checkbox"
                           checked={piData["Seleccion"] || false}
-                          onChange={(e) =>
-                            handleApprovalChange(
-                              record,
-                              "Seleccion",
-                              e.target.checked
-                            )
-                          }
+                          onChange={(e) => {
+                            const newValue = e.target.checked;
+                            // Actualizar inmediatamente el estado local
+                            setPiFormulacionRecords(prevRecords => {
+                              return prevRecords.map(prevRecord => {
+                                if (String(prevRecord.rel_id_prov) === String(record.id)) {
+                                  return {
+                                    ...prevRecord,
+                                    "Seleccion": newValue,
+                                    ...(newValue === true ? { selectionorder: null } : {}),
+                                    ...(newValue === false ? { selectionorder: null } : {})
+                                  };
+                                }
+                                return prevRecord;
+                              });
+                            });
+                            // Luego hacer la llamada al servidor
+                            handleApprovalChange(record, "Seleccion", newValue);
+                          }}
                           disabled={isRole3}
                         />
                       </td>
@@ -554,13 +612,15 @@ export default function FormulacionProvTab({ id }) {
                 <thead>
                   <tr>
                     <th className="text-center">Prioridad</th>
-                    <th>Nombre proveedor</th>
-                    <th>Rubro</th>
+                    {/* <th>Nombre proveedor</th> */}
+                    {/* <th>Rubro</th> */}
                     <th>Elemento</th>
                     <th>Descripción</th>
-                    <th>Precio Unitario</th>
                     <th className="text-center columna-cantidad">Cantidad</th>
-                    <th>Total</th>
+                    <th>Precio Proveedor</th>
+                    <th>Descripción dimensiones</th>
+                    <th>Justificación</th>
+                    {/* <th>Total</th> */}
                   </tr>
                 </thead>
                 <tbody>
@@ -577,13 +637,61 @@ export default function FormulacionProvTab({ id }) {
                     return (
                       <tr key={piRecord.rel_id_prov}>
                         <td className="text-center">{piRecord.selectionorder || ''}</td>
-                        <td>{provider["Nombre Proveedor"]}</td>
-                        <td>{getRubroName(provider.Rubro)}</td>
+                        {/* <td>{provider["Nombre Proveedor"]}</td> */}
+                        {/* <td>{getRubroName(provider.Rubro)}</td> */}
                         <td>{getElementoName(provider.Elemento)}</td>
                         <td>{provider["Descripcion corta"] || ''}</td>
-                        <td>{precioFormateado}</td>
                         <td className="text-center columna-cantidad">{cantidad}</td>
-                        <td>{totalFormateado}</td>
+                        <td>{provider["Precio"] !== undefined ? Number(provider["Precio"]).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : ''}</td>
+                        <td>
+                          <textarea
+                            value={piRecord["Descripcion dimensiones"] || ''}
+                            onChange={(e) => {
+                              // Actualizar solo el estado local mientras el usuario escribe
+                              setPiFormulacionRecords(prevRecords => {
+                                return prevRecords.map(prevRecord => {
+                                  if (String(prevRecord.rel_id_prov) === String(piRecord.rel_id_prov)) {
+                                    return {
+                                      ...prevRecord,
+                                      "Descripcion dimensiones": e.target.value
+                                    };
+                                  }
+                                  return prevRecord;
+                                });
+                              });
+                            }}
+                            onBlur={(e) => handleApprovalChange({id: piRecord.rel_id_prov}, "Descripcion dimensiones", e.target.value)}
+                            className="form-control"
+                            rows="1"
+                            placeholder="Ingrese descripción de dimensiones..."
+                            disabled={isRole3}
+                          />
+                        </td>
+                        <td>
+                          <textarea
+                            value={piRecord["Justificacion"] || ''}
+                            onChange={(e) => {
+                              // Actualizar solo el estado local mientras el usuario escribe
+                              setPiFormulacionRecords(prevRecords => {
+                                return prevRecords.map(prevRecord => {
+                                  if (String(prevRecord.rel_id_prov) === String(piRecord.rel_id_prov)) {
+                                    return {
+                                      ...prevRecord,
+                                      "Justificacion": e.target.value
+                                    };
+                                  }
+                                  return prevRecord;
+                                });
+                              });
+                            }}
+                            onBlur={(e) => handleApprovalChange({id: piRecord.rel_id_prov}, "Justificacion", e.target.value)}
+                            className="form-control"
+                            rows="1"
+                            placeholder="Ingrese justificación..."
+                            disabled={isRole3}
+                          />
+                        </td>
+                        {/* <td>{totalFormateado}</td> */}
                       </tr>
                     );
                   })}

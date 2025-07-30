@@ -17,6 +17,118 @@ export default function DatosTab({ id }) {
   const [historyError, setHistoryError] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
+  // Mapeo de nombres de campos para mostrar etiquetas más amigables
+  const fieldNameMapping = {
+    'sector': 'Pertenece a el sector',
+    'priorizado': 'Priorizado',
+    'tiempo_dedicacion': 'Tiempo de dedicación al negocio',
+    'tiempo_funcionamiento': 'Tiempo de funcionamiento del negocio local',
+    'valor_ingresos_ventas': 'Valor aproximado de ingreso-ventas',
+    'valor_activos': 'Valor aproximado de activos',
+    'valor_gastos_costos': 'Valor aproximado de gastos-costos',
+    'valor_utilidad_margen': 'Valor total de utilidad-margen',
+    'valor_gastos_familiares': 'Valor gastos familiares mensuales promedio',
+    'descripcion_negocio': 'Descripción general del negocio',
+    'descripcion_lugar_actividad': 'Descripción del lugar donde desarrolla la actividad',
+    'descripcion_capacidad_produccion': 'Descripción de la capacidad de producción'
+  };
+
+  // Función para obtener el nombre de visualización de un campo
+  const getDisplayName = (fieldName) => {
+    return fieldNameMapping[fieldName] || fieldName;
+  };
+
+  // Opciones para los campos de selección
+  const fieldOptions = {
+    'sector': [
+      'Textil y confecciones',
+      'Gastronomía',
+      'Calzado - Marroquinería',
+      'Artesanías',
+      'Cosmética y belleza'
+    ],
+    'priorizado': [
+      'Si',
+      'No'
+    ],
+    'tiempo_dedicacion': [
+      'Parcial',
+      'Total'
+    ],
+    'tiempo_funcionamiento': [
+      '3 - 12 meses',
+      '12 - 24 meses',
+      '24 - 36 meses',
+      'Más de 36 meses'
+    ],
+    'valor_ingresos_ventas': [
+      '$ 0 a $ 500.000',
+      '$ 500.001 a $ 1.000.000',
+      '$ 1.000.001 a $ 2.000.000',
+      '$ 2.000.001 a $ 3.000.000',
+      '$ 3.000.001 a $ 4.000.000',
+      '$ 4.000.001 a $ 5.000.000',
+      '$ 5.000.001 a $ 10.000.000',
+      'Mas de $ 10.000.000'
+    ],
+    'valor_gastos_costos': [
+      '$ 0 a $ 500.000',
+      '$ 500.001 a $ 1.000.000',
+      '$ 1.000.001 a $ 2.000.000',
+      '$ 2.000.001 a $ 3.000.000',
+      '$ 3.000.001 a $ 4.000.000',
+      '$ 4.000.001 a $ 5.000.000',
+      '$ 5.000.001 a $ 10.000.000',
+      'Mas de $ 10.000.000'
+    ],
+    'valor_utilidad_margen': [
+      '$ 0 a $ 500.000',
+      '$ 500.001 a $ 1.000.000',
+      '$ 1.000.001 a $ 2.000.000',
+      '$ 2.000.001 a $ 3.000.000',
+      '$ 3.000.001 a $ 4.000.000',
+      '$ 4.000.001 a $ 5.000.000',
+      '$ 5.000.001 a $ 10.000.000',
+      'Mas de $ 10.000.000'
+    ]
+  };
+
+  // Función para verificar si un campo debe ser un select
+  const isSelectField = (fieldName) => {
+    return fieldOptions.hasOwnProperty(fieldName);
+  };
+
+  // Función para verificar si un campo debe ocupar toda la fila
+  const isFullWidthField = (fieldName) => {
+    const fullWidthFields = [
+      'descripcion_negocio',
+      'descripcion_lugar_actividad', 
+      'descripcion_capacidad_produccion'
+    ];
+    return fullWidthFields.includes(fieldName);
+  };
+
+  // Función para obtener el número de filas para textareas específicos
+  const getTextareaRows = (fieldName) => {
+    const singleRowFields = [
+      'valor_activos',
+      'valor_gastos_familiares'
+    ];
+    const descriptionFields = [
+      'descripcion_negocio',
+      'descripcion_lugar_actividad',
+      'descripcion_capacidad_produccion'
+    ];
+    
+    if (singleRowFields.includes(fieldName)) {
+      return 1;
+    } else if (descriptionFields.includes(fieldName)) {
+      return 4;
+    } else {
+      return 2;
+    }
+  };
+
   // Obtener el rol del usuario
   const getLoggedUserRoleId = () => {
     return localStorage.getItem('role_id') || null;
@@ -34,7 +146,7 @@ export default function DatosTab({ id }) {
 
         // Obtener campos de la tabla (vía PI)
         const fieldsResponse = await axios.get(
-          `${config.urls.inscriptions.base}/tables/${tableName}/fields`,
+          `${config.urls.inscriptions.base}/pi/tables/${tableName}/fields`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -45,7 +157,7 @@ export default function DatosTab({ id }) {
 
         // Obtener registro existente filtrado por caracterizacion_id
         const recordsResponse = await axios.get(
-          `${config.urls.inscriptions.base}/tables/${tableName}/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.base}/pi/tables/${tableName}/records?caracterizacion_id=${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -89,7 +201,7 @@ export default function DatosTab({ id }) {
       if (recordId) {
         // Actualizar registro existente
         await axios.put(
-          `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}`,
+          `${config.urls.inscriptions.base}/pi/tables/${tableName}/record/${recordId}`,
           recordData,
           {
             headers: {
@@ -107,7 +219,7 @@ export default function DatosTab({ id }) {
         // recordData.id = userId;
 
         await axios.post(
-          `${config.urls.inscriptions.base}/tables/${tableName}/record`,
+          `${config.urls.inscriptions.base}/pi/tables/${tableName}/record`,
           recordData,
           {
             headers: {
@@ -130,7 +242,7 @@ export default function DatosTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const historyResponse = await axios.get(
-        `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/pi/tables/${tableName}/record/${recordId}/history`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -160,25 +272,66 @@ export default function DatosTab({ id }) {
       ) : (
         <div>
           <form onSubmit={handleSubmit}>
-            {fields
-              .filter((field) => field.column_name !== 'id' && field.column_name !== 'caracterizacion_id')
-              .map((field) => (
-                <div className="form-group" key={field.column_name} style={{minWidth: '200px', minHeight: '60px', width: '100%', maxWidth: '100%', maxHeight: '500px', /* border: '1px solid #ccc', */ boxSizing: 'border-box', marginBottom: '16px', display: 'block', padding: 0}}>
-                  <label style={{ padding: '10px', display: 'block' }}>{field.column_name}</label>
-                  <textarea
-                    name={field.column_name}
-                    className="form-control"
-                    value={data[field.column_name] || ''}
-                    onChange={handleChange}
-                    style={{
-                      width: '100%',
-                      minHeight: '40px',
-                      resize: 'both'
-                    }}
-                    readOnly={role === '3'}
-                  />
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+              {fields
+                .filter((field) => field.column_name !== 'id' && field.column_name !== 'caracterizacion_id')
+                .map((field) => {
+                  const isFullWidth = isFullWidthField(field.column_name);
+                  
+                  return (
+                    <div 
+                      key={field.column_name} 
+                      style={{
+                        minWidth: '200px',
+                        minHeight: '60px',
+                        width: isFullWidth ? '100%' : 'calc(50% - 8px)',
+                        maxWidth: isFullWidth ? '100%' : 'calc(50% - 8px)',
+                        maxHeight: '500px',
+                        boxSizing: 'border-box',
+                        marginBottom: '16px',
+                        display: 'block',
+                        padding: 0
+                      }}
+                    >
+                      <label style={{ padding: '10px', display: 'block' }}>{getDisplayName(field.column_name)}</label>
+                      {isSelectField(field.column_name) ? (
+                        <select
+                          name={field.column_name}
+                          className="form-control"
+                          value={data[field.column_name] || ''}
+                          onChange={handleChange}
+                          style={{
+                            width: '100%',
+                            minHeight: '40px'
+                          }}
+                          disabled={role === '3'}
+                        >
+                          <option value="">-- Selecciona una opción --</option>
+                          {fieldOptions[field.column_name].map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <textarea
+                          name={field.column_name}
+                          className="form-control"
+                          value={data[field.column_name] || ''}
+                          onChange={handleChange}
+                          rows={getTextareaRows(field.column_name)}
+                          style={{
+                            width: '100%',
+                            minHeight: '40px',
+                            resize: 'both'
+                          }}
+                          readOnly={role === '3'}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
             {/* Contenedor flex para los botones */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
               {role !== '3' && (
