@@ -56,16 +56,18 @@ exports.createTable = async (req, res) => {
       return res.status(400).json({ message: 'El nombre de la tabla y los campos son requeridos' });
     }
 
-    // Validar que el nombre de la tabla comience con 'inscription_', 'provider_' o 'pi_'.
-    // Esto garantiza que el nombre de la tabla siga un estándar definido.
-    const prefixedTableName =
-      table_name.startsWith('inscription_') ||
-      table_name.startsWith('provider_') ||
-      table_name.startsWith('pi_');
-    if (!prefixedTableName) {
-      // Si el nombre no cumple con los prefijos, devuelve un error 400.
-      return res.status(400).json({
-        message: 'El nombre de la tabla debe empezar con inscription_, provider_ o pi_',
+         // Validar que el nombre de la tabla comience con 'inscription_', 'provider_', 'kit_', 'pi_' o 'master_'.
+     // Esto garantiza que el nombre de la tabla siga un estándar definido.
+     const prefixedTableName =
+       table_name.startsWith('inscription_') ||
+       table_name.startsWith('provider_') ||
+       table_name.startsWith('kit_') ||
+       table_name.startsWith('pi_') ||
+       table_name.startsWith('master_');
+     if (!prefixedTableName) {
+       // Si el nombre no cumple con los prefijos, devuelve un error 400.
+       return res.status(400).json({
+         message: 'El nombre de la tabla debe empezar con inscription_, provider_, kit_, pi_ o master_',
       });
     }
 
@@ -171,6 +173,10 @@ exports.listTables = async (req, res) => {
     let tablePrefix;
     if (tableType === 'provider') {
       tablePrefix = 'provider_%'; // Prefijo para tablas de tipo 'provider'.
+    } else if (tableType === 'provider_kit') {
+      tablePrefix = 'kit_%'; // Prefijo para tablas de tipo 'provider_kit' (nuevo formato: kit_*)
+    } else if (tableType === 'master') {
+      tablePrefix = 'master_%'; // Prefijo para tablas de tipo 'master'
     } else if (tableType === 'pi') {
       tablePrefix = 'pi_%'; // Prefijo para tablas de tipo 'pi'.
     } else {
@@ -413,12 +419,14 @@ exports.addRecord = async (req, res) => {
     // ------------------------- VALIDACIÓN DEL NOMBRE DE LA TABLA -----------------------------
     // ----------------------------------------------------------------------------------------
 
-    // Verificar que el nombre de la tabla comience con 'inscription_', 'provider_' o 'pi_'.
+    // Verificar que el nombre de la tabla comience con 'inscription_', 'provider_', 'pi_', 'kit_' o 'master_'.
     // Esto garantiza que solo se agreguen registros a tablas que cumplan con el estándar definido.
     if (
       !table_name.startsWith('inscription_') &&
       !table_name.startsWith('provider_') &&
-      !table_name.startsWith('pi_')
+      !table_name.startsWith('pi_') &&
+      !table_name.startsWith('kit_') &&
+      !table_name.startsWith('master_')
     ) {
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
@@ -876,7 +884,9 @@ exports.getTableRecords = async (req, res) => {
     if (
       !table_name.startsWith('inscription_') &&
       !table_name.startsWith('provider_') &&
-      !table_name.startsWith('pi_')
+      !table_name.startsWith('pi_') &&
+      !table_name.startsWith('kit_') &&
+      !table_name.startsWith('master_')
     ) {
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
@@ -1714,7 +1724,9 @@ exports.getFiles = async (req, res) => {
     if (
       !table_name.startsWith('inscription_') &&
       !table_name.startsWith('provider_') &&
-      !table_name.startsWith('pi_')
+      !table_name.startsWith('pi_') &&
+      !table_name.startsWith('kit_') &&
+      !table_name.startsWith('master_')
     ) {
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
@@ -1798,12 +1810,14 @@ exports.downloadZip = (req, res) => {
   // ----------------- VALIDAR QUE EL NOMBRE DE LA TABLA TENGA UN PREFIJO VÁLIDO -------------
   // ----------------------------------------------------------------------------------------
 
-  // Verificar que el nombre de la tabla comience con 'inscription_', 'provider_' o 'pi_'.
+  // Verificar que el nombre de la tabla comience con 'inscription_', 'provider_', 'pi_', 'kit_' o 'master_'.
   // Si no cumple con este criterio, devolver un error 400.
   if (
     !table_name.startsWith('inscription_') &&
     !table_name.startsWith('provider_') &&
-    !table_name.startsWith('pi_')
+    !table_name.startsWith('pi_') &&
+    !table_name.startsWith('kit_') &&
+    !table_name.startsWith('master_')
   ) {
     return res.status(400).json({ message: 'Nombre de tabla inválido' });
   }
@@ -2985,7 +2999,9 @@ exports.createComment = async (req, res) => {
     if (
       !table_name.startsWith('inscription_') &&
       !table_name.startsWith('provider_') &&
-      !table_name.startsWith('pi_')
+      !table_name.startsWith('pi_') &&
+      !table_name.startsWith('kit_') &&
+      !table_name.startsWith('master_')
     ) {
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
@@ -3080,7 +3096,9 @@ exports.getComments = async (req, res) => {
     if (
       !table_name.startsWith('inscription_') &&
       !table_name.startsWith('provider_') &&
-      !table_name.startsWith('pi_')
+      !table_name.startsWith('pi_') &&
+      !table_name.startsWith('kit_') &&
+      !table_name.startsWith('master_')
     ) {
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }

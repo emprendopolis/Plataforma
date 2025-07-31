@@ -396,6 +396,26 @@ export default function ListTables() {
                       >
                         Ver Tablas de Plan de Inversión
                       </button>
+                      <button
+                        className={`btn ${
+                          tableType === "provider_kit"
+                            ? "btn-primary"
+                            : "btn-secondary"
+                        } mx-2`}
+                        onClick={() => setTableType("provider_kit")}
+                      >
+                        Ver Tablas de Kit
+                      </button>
+                      <button
+                        className={`btn ${
+                          tableType === "master"
+                            ? "btn-primary"
+                            : "btn-secondary"
+                        } mx-2`}
+                        onClick={() => setTableType("master")}
+                      >
+                        Ver Tablas de Master
+                      </button>
                     </div>
                     <table className="table table-hover text-nowrap minimal-table">
                       <thead>

@@ -18,6 +18,7 @@ import DynamicTableList from './components/DynamicTableList';
 import DynamicRecordEdit from './components/DynamicRecordEdit';
 import DownloadZip from './components/DownloadZip';
 import ProviderTableList from './components/ProviderTableList';
+import ProviderKitTableList from './components/ProviderKitTableList';
 import PiTableList from './components/PiTableList';
 import PlanDeInversion from './components/PlanDeInversion';
 import PublicRecordCreate from './components/PublicRecordCreate'; // Importar el componente PublicRecordCreate
@@ -204,6 +205,21 @@ export default function App() {
                 <Header />
                 <Aside />
                 <ProviderTableList />
+                <Footer />
+              </div>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Nueva Ruta para las tablas de proveedores de kits */}
+        <Route
+          path="/provider-kit-tables"
+          element={
+            <PrivateRoute>
+              <div className="wrapper">
+                <Header />
+                <Aside />
+                <ProviderKitTableList />
                 <Footer />
               </div>
             </PrivateRoute>

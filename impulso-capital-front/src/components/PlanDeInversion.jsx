@@ -8,12 +8,14 @@ import CapacitacionTab from './PlanDeInversion/CapacitacionTab';
 import ValidacionesTab from './PlanDeInversion/ValidacionesTab';
 import FormulacionTab from './PlanDeInversion/FormulacionTab';
 import FormulacionProvTab from './PlanDeInversion/FormulacionProvTab';
+import FormulacionKitTab from './PlanDeInversion/FormulacionKitTab';
 import InfoBancariaTab from './PlanDeInversion/InfoBancariaTab';
 import AnexosTab from './PlanDeInversion/AnexosTab';
 import AnexosV2Tab from './PlanDeInversion/AnexosV2Tab';
 import EjecucionTab from './PlanDeInversion/EjecucionTab'; // Nuevo componente
 import EncuestaSalidaTab from './PlanDeInversion/EncuestaSalidaTab';
 import GenerarFichaTab from './PlanDeInversion/GenerarFichaTab';
+import GenerarFichaKitTab from './PlanDeInversion/GenerarFichaKitTab';
 import './PlanDeInversion/PlanDeInversion.css'; // Archivo CSS para estilos personalizados
 
 export default function PlanDeInversion() {
@@ -125,6 +127,18 @@ export default function PlanDeInversion() {
                   <i className="fas fa-handshake"></i> Formulación con Proveedores
                 </a>
               </li>
+              <li className={`nav-item ${activeTab === 'FormulacionKit' ? 'active' : ''}`}>
+                <a
+                  href="#"
+                  className="nav-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveTab('FormulacionKit');
+                  }}
+                >
+                  <i className="fas fa-box"></i> Formulación con Kits
+                </a>
+              </li>
               {/*<li className={`nav-item ${activeTab === 'InfoBancaria' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -197,6 +211,18 @@ export default function PlanDeInversion() {
                   <i className="fas fa-file-pdf"></i> Generar Ficha en PDF
                 </a>
               </li>
+              <li className={`nav-item ${activeTab === 'GenerarFichaKit' ? 'active' : ''}`}>
+                <a
+                  href="#"
+                  className="nav-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setActiveTab('GenerarFichaKit');
+                  }}
+                >
+                  <i className="fas fa-file-pdf"></i> Generar Ficha de Kits en PDF
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -210,12 +236,14 @@ export default function PlanDeInversion() {
             {activeTab === 'Validaciones' && <ValidacionesTab id={id} />}
             {/* {activeTab === 'Formulacion' && <FormulacionTab id={id} />} */}
             {activeTab === 'FormulacionProv' && <FormulacionProvTab id={id} />}
+            {activeTab === 'FormulacionKit' && <FormulacionKitTab id={id} />}
             {activeTab === 'InfoBancaria' && <InfoBancariaTab id={id} />}
             {/* {activeTab === 'Anexos' && <AnexosTab id={id} />} */}
             {activeTab === 'AnexosV2' && <AnexosV2Tab id={id} />}
             {activeTab === 'Ejecucion' && <EjecucionTab id={id} />}
             {/* {activeTab === 'EncuestaSalida' && <EncuestaSalidaTab id={id} />} */}
             {activeTab === 'GenerarFicha' && <GenerarFichaTab id={id} />}
+            {activeTab === 'GenerarFichaKit' && <GenerarFichaKitTab id={id} />}
           </div>
         </div>
       </section>
