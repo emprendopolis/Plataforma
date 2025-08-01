@@ -19,7 +19,6 @@ export default function GenerarFichaKitTab({ id }) {
   const [formulacionData, setFormulacionData] = useState([]);
   const [formulacionKitData, setFormulacionKitData] = useState([]); // Cambio: datos de formulación de kits
   const [providersData, setProvidersData] = useState([]);
-  const [elementosData, setElementosData] = useState([]);
   const [groupedRubros, setGroupedRubros] = useState([]);
   const [totalInversion, setTotalInversion] = useState(0);
   const [relatedData, setRelatedData] = useState({});
@@ -90,8 +89,7 @@ export default function GenerarFichaKitTab({ id }) {
           activosActualesResponse,
           formulacionResponse,
           formulacionKitResponse, // Cambio: formulación de kits
-          providersResponse,
-          elementosResponse
+          providersResponse
         ] = await Promise.all([
           axios.get(`${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/inscription_caracterizacion/related-data`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -99,9 +97,8 @@ export default function GenerarFichaKitTab({ id }) {
           axios.get(`${config.urls.inscriptions.pi}/tables/pi_propuesta_mejora/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/pi_activos/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/pi_formulacion/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-                                           axios.get(`${config.urls.inscriptions.pi}/tables/master_formulacion/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }), // Cambio: tabla de kits (con columnas adicionales)
-           axios.get(`${config.urls.inscriptions.base}/tables/kit_proveedores/records`, { headers: { Authorization: `Bearer ${token}` } }), // Cambio: proveedores de kits
-           axios.get(`${config.urls.inscriptions.base}/tables/kit_elemento/records`, { headers: { Authorization: `Bearer ${token}` } }), // Cambio: elementos de kits
+          axios.get(`${config.urls.inscriptions.base}/master/tables/master_formulacion/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }), // Cambio: tabla de kits (con columnas adicionales)
+          axios.get(`${config.urls.inscriptions.base}/tables/kit_proveedores/records`, { headers: { Authorization: `Bearer ${token}` } }), // Cambio: proveedores de kits
         ]);
 
         // 1. Procesar datos de `inscription_caracterizacion`
@@ -176,33 +173,44 @@ export default function GenerarFichaKitTab({ id }) {
                          setFormulacionKitData(formulacionKitResponse.data);
                          console.log("Datos de master_formulacion:", formulacionKitResponse.data);
 
-        // 11. Procesar datos de proveedores y elementos de kits
+        // 11. Procesar datos de proveedores de kits
         setProvidersData(providersResponse.data);
-        setElementosData(elementosResponse.data);
         console.log("Datos de proveedores de kits:", providersResponse.data);
-        console.log("Datos de elementos de kits:", elementosResponse.data);
 
-        // 12. Agrupar Rubros y calcular total inversión para kits
-        const rubrosOptions = [
-          "Kit de herramientas",
-          "Kit de equipos",
-          "Kit de materiales",
-          "Kit de capacitación",
-        ];
+        // 12. Calcular total inversión para kits seleccionados
+        const selectedKits = formulacionKitResponse.data.filter(rec => rec.Seleccion === true);
+        
+        const totalInv = selectedKits.reduce((sum, rec) => {
+          const cantidad = rec["Cantidad"] || 1;
+          const provider = providersResponse.data.find(p => String(p.id) === String(rec.rel_id_prov));
+          const precio = provider ? (provider["Precio"] || 0) : 0;
+          return sum + (cantidad * precio);
+        }, 0);
+        
+        const cpart = totalInv > montoDisponible ? totalInv - montoDisponible : 0;
 
-        const resumenPorRubro = rubrosOptions.map((r) => {
-          const total = formulacionKitResponse.data
-            .filter((rec) => rec["Rubro"] === r)
-            .reduce((sum, rec) => {
-              const cantidad = rec["Cantidad"] || 0;
-              const valorUnitario = rec["Valor Unitario"] || 0;
-              return sum + (cantidad * valorUnitario);
-            }, 0);
-          return { rubro: r, total };
+        // Crear resumen por código de kit
+        const resumenPorKit = {};
+        selectedKits.forEach(rec => {
+          const provider = providersResponse.data.find(p => String(p.id) === String(rec.rel_id_prov));
+          if (provider) {
+            const codigoKit = provider.codigoKit || 'Sin código';
+            const cantidad = rec["Cantidad"] || 1;
+            const precio = provider["Precio"] || 0;
+            const subtotal = cantidad * precio;
+            
+            if (resumenPorKit[codigoKit]) {
+              resumenPorKit[codigoKit] += subtotal;
+            } else {
+              resumenPorKit[codigoKit] = subtotal;
+            }
+          }
         });
 
-        const totalInv = resumenPorRubro.reduce((sum, item) => sum + item.total, 0);
-        const cpart = totalInv > montoDisponible ? totalInv - montoDisponible : 0;
+        const resumenPorRubro = Object.entries(resumenPorKit).map(([kit, total]) => ({
+          rubro: kit,
+          total: total
+        }));
 
         setGroupedRubros(resumenPorRubro);
         setTotalInversion(totalInv.toFixed(2));
@@ -514,17 +522,18 @@ export default function GenerarFichaKitTab({ id }) {
           propuesta: item["Propuesta de mejora"] || 'No disponible',
         }));
 
-        doc.autoTable({
-          startY: yPosition,
-          head: [propuestaHeaders.map(col => col.header)],
-          body: propuestaBody.map(row => propuestaHeaders.map(col => row[col.dataKey])),
-          theme: 'striped',
-          styles: { 
-            fontSize: fontSizes.normal, 
-            cellPadding: 4,
-            lineWidth: 0.5,
-            lineColor: [200, 200, 200]
-          },
+                 doc.autoTable({
+           startY: yPosition,
+           head: [propuestaHeaders.map(col => col.header)],
+           body: propuestaBody.map(row => propuestaHeaders.map(col => row[col.dataKey])),
+           theme: 'striped',
+           styles: { 
+             fontSize: fontSizes.normal, 
+             cellPadding: 4,
+             lineWidth: 0.5,
+             lineColor: [200, 200, 200],
+             valign: 'middle'
+           },
           tableWidth: 'auto',
           headStyles: { 
             fillColor: tableColor, 
@@ -580,17 +589,18 @@ export default function GenerarFichaKitTab({ id }) {
           elementoReposicion: item["Elemento para reposicion"] || 'No disponible',
         }));
 
-        doc.autoTable({
-          startY: yPosition,
-          head: [activosHeaders.map(col => col.header)],
-          body: activosBody.map(row => activosHeaders.map(col => row[col.dataKey])),
-          theme: 'striped',
-          styles: { 
-            fontSize: fontSizes.normal, 
-            cellPadding: 4,
-            lineWidth: 0.5,
-            lineColor: [200, 200, 200]
-          },
+                 doc.autoTable({
+           startY: yPosition,
+           head: [activosHeaders.map(col => col.header)],
+           body: activosBody.map(row => activosHeaders.map(col => row[col.dataKey])),
+           theme: 'striped',
+           styles: { 
+             fontSize: fontSizes.normal, 
+             cellPadding: 4,
+             lineWidth: 0.5,
+             lineColor: [200, 200, 200],
+             valign: 'middle'
+           },
           tableWidth: 'auto',
           headStyles: { 
             fillColor: tableColor, 
@@ -630,17 +640,12 @@ export default function GenerarFichaKitTab({ id }) {
       yPosition += 20;
 
       // Funciones helper para obtener nombres
-      const getElementoName = (elementoId) => {
-        const elemento = elementosData.find(el => String(el.id) === String(elementoId));
-        return elemento ? elemento.Elemento : 'Desconocido';
-      };
-
       const getProviderInfo = (providerId) => {
         const provider = providersData.find(p => String(p.id) === String(providerId));
         if (!provider) return { elemento: 'Desconocido', descripcion: 'No disponible' };
         
         return {
-          elemento: getElementoName(provider.Elemento),
+          elemento: provider["cantidad_bienes"] || 'Desconocido',
           descripcion: provider["Descripcion corta"] || 'No disponible'
         };
       };
@@ -649,49 +654,39 @@ export default function GenerarFichaKitTab({ id }) {
       const selectedFormulacionKit = formulacionKitData.filter(item => item.Seleccion === true);
 
       if (selectedFormulacionKit.length > 0) {
-        const formulacionHeaders = [
-          { header: 'Tipo de kit', dataKey: 'tipoKit' },
-          { header: 'Kit\nseleccionado', dataKey: 'kitSeleccionado' },
-          { header: 'Descripción del kit', dataKey: 'descripcionKit' },
-          { header: 'Cantidad', dataKey: 'cantidad' },
-          { header: 'Descripción dimensiones', dataKey: 'descripcionDimensiones' },
-          { header: 'Justificación', dataKey: 'justificacion' },
-        ];
+                 const formulacionHeaders = [
+           { header: 'Código Kit', dataKey: 'codigoKit' },
+           { header: 'Cantidad y Nombre\nde artículos que\nincluye el KIT', dataKey: 'kitSeleccionado' },
+           { header: 'Cantidad de KIT', dataKey: 'cantidad' },
+           { header: 'Descripción dimensiones', dataKey: 'descripcionDimensiones' },
+           { header: 'Justificación', dataKey: 'justificacion' },
+         ];
 
-        const formulacionBody = selectedFormulacionKit.map(item => {
-          const providerInfo = getProviderInfo(item.rel_id_prov);
-          
-          // Lógica para determinar el tipo de kit
-          let tipoKit = 'Sin prioridad';
-          if (item.selectionorder) {
-            if (item.selectionorder === 1) {
-              tipoKit = 'Primario';
-            } else if (item.selectionorder >= 2 && item.selectionorder <= 4) {
-              tipoKit = 'Complementario';
-            }
-          }
-          
-          return {
-            tipoKit: tipoKit,
-            kitSeleccionado: providerInfo.elemento,
-            descripcionKit: providerInfo.descripcion,
-            cantidad: item.Cantidad ? item.Cantidad.toString() : '1',
-            descripcionDimensiones: item["Descripcion dimensiones"] || 'No disponible',
-            justificacion: item.Justificacion || 'No disponible',
-          };
-        });
+                 const formulacionBody = selectedFormulacionKit.map(item => {
+           const providerInfo = getProviderInfo(item.rel_id_prov);
+           const provider = providersData.find(p => String(p.id) === String(item.rel_id_prov));
+           
+           return {
+             codigoKit: provider ? (provider.codigoKit || 'Sin código') : 'Sin código',
+             kitSeleccionado: providerInfo.elemento,
+             cantidad: item.Cantidad ? item.Cantidad.toString() : '1',
+             descripcionDimensiones: item["Descripcion dimensiones"] || 'No disponible',
+             justificacion: item.Justificacion || 'No disponible',
+           };
+         });
 
-        doc.autoTable({
-          startY: yPosition,
-          head: [formulacionHeaders.map(col => col.header)],
-          body: formulacionBody.map(row => formulacionHeaders.map(col => row[col.dataKey])),
-          theme: 'striped',
-          styles: { 
-            fontSize: fontSizes.normal, 
-            cellPadding: 4,
-            lineWidth: 0.5,
-            lineColor: [200, 200, 200]
-          },
+                 doc.autoTable({
+           startY: yPosition,
+           head: [formulacionHeaders.map(col => col.header)],
+           body: formulacionBody.map(row => formulacionHeaders.map(col => row[col.dataKey])),
+           theme: 'striped',
+           styles: { 
+             fontSize: fontSizes.normal, 
+             cellPadding: 4,
+             lineWidth: 0.5,
+             lineColor: [200, 200, 200],
+             valign: 'middle'
+           },
           tableWidth: 'auto',
           headStyles: { 
             fillColor: tableColor, 
@@ -701,14 +696,13 @@ export default function GenerarFichaKitTab({ id }) {
             valign: 'middle'
           },
           margin: { left: margin, right: margin },
-          columnStyles: {
-            0: { halign: 'center', cellWidth: 58 },
-            1: { halign: 'left', cellWidth: 85 },
-            2: { halign: 'left', cellWidth: 110 },
-            3: { halign: 'center', cellWidth: 60 },
-            4: { halign: 'left', cellWidth: 100 },
-            5: { halign: 'left', cellWidth: 100 }
-          },
+                     columnStyles: {
+             0: { halign: 'center', cellWidth: 70 },
+             1: { halign: 'left', cellWidth: 140 },
+             2: { halign: 'center', cellWidth: 70 },
+             3: { halign: 'left', cellWidth: 117 },
+             4: { halign: 'left', cellWidth: 117 }
+           },
           didDrawPage: (data) => {
             yPosition = data.cursor.y;
           },
@@ -720,7 +714,8 @@ export default function GenerarFichaKitTab({ id }) {
         yPosition += 14;
       }
 
-      // 6. RESUMEN DE LA INVERSIÓN EN KITS
+      // 6. RESUMEN DE LA INVERSIÓN EN KITS (OCULTO)
+      /*
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 20;
@@ -784,6 +779,7 @@ export default function GenerarFichaKitTab({ id }) {
       });
 
       yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
+      */
 
       // 7. CONCEPTO DE VIABILIDAD DE PLAN DE INVERSIÓN EN KITS
       doc.setFontSize(fontSizes.subtitle);
