@@ -181,6 +181,12 @@ router.post('/pi/tables/:table_name/record', inscriptionController.createTableRe
 // Ruta para actualizar un registro existente en una tabla dinámica de PI (nuevo controlador)
 router.put('/pi/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.updatePiRecord);
 
+// Rutas específicas para tablas master_ (master_formulacion, etc.)
+router.post('/master/tables/:table_name/record', inscriptionController.createMasterTableRecord);
+router.put('/master/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.updateMasterTableRecord);
+router.get('/master/tables/:table_name/records', authenticateJWT, authorizePermission('view_tables'), inscriptionController.getMasterTableRecords);
+router.get('/master/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('view_tables'), inscriptionController.getMasterTableRecordById);
+
 // Ruta para guardar la configuración de columnas visibles para una tabla específica
 router.post(
   '/tables/:table_name/visible-columns',

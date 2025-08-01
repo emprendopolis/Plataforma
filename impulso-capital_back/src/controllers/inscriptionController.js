@@ -3607,13 +3607,294 @@ exports.uploadAnexosV2File = async (req, res) => {
   }
 };
 
+// ----------------------------------------------------------------------------------------
+// ---------------------------- CONTROLADORES PARA TABLAS MASTER_ --------------------------
+// ----------------------------------------------------------------------------------------
 
+// Controlador para crear un nuevo registro en una tabla master_
+exports.createMasterTableRecord = async (req, res) => {
+  const { table_name } = req.params;
+  const data = req.body;
 
+  // Validar que la tabla empiece con master_
+  if (!table_name.startsWith('master_')) {
+    return res.status(400).json({ message: 'Nombre de tabla inválido. Debe empezar con master_' });
+  }
 
+  // Asegurar que llegue user_id para el historial
+  const userId = data.user_id;
+  if (!userId) {
+    return res.status(400).json({
+      message: 'Falta user_id en la petición para el historial.'
+    });
+  }
 
+  try {
+    // 1. OBTENER CAMPOS DE LA TABLA
+    const fieldsQueryResult = await sequelize.query(
+      `SELECT column_name
+         FROM information_schema.columns
+        WHERE LOWER(table_name) = LOWER(?)`,
+      {
+        replacements: [table_name],
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+    const fields = fieldsQueryResult.map((field) => field.column_name).filter(Boolean);
 
+    if (fields.length === 0) {
+      return res.status(500).json({
+        message: 'No se pudieron obtener los campos de la tabla.'
+      });
+    }
 
+    // 2. FILTRAR DATOS, ignorando user_id (que es para historial)
+    const filteredData = {};
+    for (const key in data) {
+      if (
+        key !== 'user_id' &&
+        fields.includes(key) &&
+        data[key] !== undefined &&
+        data[key] !== null
+      ) {
+        filteredData[key] = data[key];
+      }
+    }
 
+    if (Object.keys(filteredData).length === 0) {
+      return res.status(400).json({
+        message: 'No se proporcionaron campos válidos para crear el registro.'
+      });
+    }
 
+    // 3. CREAR EL REGISTRO
+    const insertFields = Object.keys(filteredData).map((f) => `"${f}"`).join(', ');
+    const insertValues = Object.keys(filteredData).map((_, i) => `$${i + 1}`).join(', ');
 
+    const insertQuery = `
+      INSERT INTO "${table_name}" (${insertFields})
+      VALUES (${insertValues})
+      RETURNING *
+    `;
 
+    const [newRecord] = await sequelize.query(insertQuery, {
+      bind: Object.values(filteredData),
+      type: sequelize.QueryTypes.INSERT
+    });
+
+    const createdRecord = newRecord[0];
+
+    // Registrar en historial: cada campo creado con oldValue = null
+    for (const key of Object.keys(filteredData)) {
+      await insertHistory(
+        table_name,
+        createdRecord.id,
+        userId,
+        'create',
+        key,
+        null,
+        createdRecord[key],
+        `Campo ${key} creado`
+      );
+    }
+
+    return res.status(201).json({
+      message: `Registro creado con éxito (${table_name})`,
+      record: createdRecord,
+    });
+
+  } catch (error) {
+    console.error('Error creando registro en tabla master:', error);
+    return res.status(500).json({
+      message: 'Error creando el registro',
+      error: error.message,
+    });
+  }
+};
+
+// Controlador para actualizar un registro existente en una tabla master_
+exports.updateMasterTableRecord = async (req, res) => {
+  const { table_name, record_id } = req.params;
+  const data = req.body;
+
+  // Validar que la tabla empiece con master_
+  if (!table_name.startsWith('master_')) {
+    return res.status(400).json({ message: 'Nombre de tabla inválido. Debe empezar con master_' });
+  }
+
+  // Asegurar que llegue user_id para el historial
+  const userId = data.user_id;
+  if (!userId) {
+    return res.status(400).json({
+      message: 'Falta user_id en la petición para el historial.'
+    });
+  }
+
+  try {
+    // 1. OBTENER CAMPOS DE LA TABLA
+    const fieldsQueryResult = await sequelize.query(
+      `SELECT column_name
+         FROM information_schema.columns
+        WHERE LOWER(table_name) = LOWER(?)`,
+      {
+        replacements: [table_name],
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+    const fields = fieldsQueryResult.map((field) => field.column_name).filter(Boolean);
+
+    if (fields.length === 0) {
+      return res.status(500).json({
+        message: 'No se pudieron obtener los campos de la tabla.'
+      });
+    }
+
+    // 2. OBTENER REGISTRO ACTUAL PARA COMPARAR
+    const currentRecordQuery = `SELECT * FROM "${table_name}" WHERE id = ?`;
+    const [currentRecord] = await sequelize.query(currentRecordQuery, {
+      replacements: [record_id],
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    if (!currentRecord) {
+      return res.status(404).json({
+        message: 'Registro no encontrado'
+      });
+    }
+
+    // 3. FILTRAR DATOS, ignorando user_id (que es para historial)
+    const filteredData = {};
+    for (const key in data) {
+      if (
+        key !== 'user_id' &&
+        fields.includes(key) &&
+        data[key] !== undefined &&
+        data[key] !== null
+      ) {
+        filteredData[key] = data[key];
+      }
+    }
+
+    if (Object.keys(filteredData).length === 0) {
+      return res.status(400).json({
+        message: 'No se proporcionaron campos válidos para actualizar el registro.'
+      });
+    }
+
+    // 4. ACTUALIZAR EL REGISTRO
+    const updateFields = Object.keys(filteredData).map((f) => `"${f}" = ?`).join(', ');
+    const updateQuery = `
+      UPDATE "${table_name}"
+      SET ${updateFields}
+      WHERE id = ?
+      RETURNING *
+    `;
+
+    const updateValues = [...Object.values(filteredData), record_id];
+    const [updatedRecord] = await sequelize.query(updateQuery, {
+      replacements: updateValues,
+      type: sequelize.QueryTypes.UPDATE
+    });
+
+    // 5. REGISTRAR EN HISTORIAL
+    for (const key of Object.keys(filteredData)) {
+      const oldValue = currentRecord[key];
+      const newValue = filteredData[key];
+      
+      if (oldValue !== newValue) {
+        await insertHistory(
+          table_name,
+          record_id,
+          userId,
+          'update',
+          key,
+          oldValue,
+          newValue,
+          `Campo ${key} actualizado`
+        );
+      }
+    }
+
+    return res.status(200).json({
+      message: `Registro actualizado con éxito (${table_name})`,
+      record: updatedRecord[0],
+    });
+
+  } catch (error) {
+    console.error('Error actualizando registro en tabla master:', error);
+    return res.status(500).json({
+      message: 'Error actualizando el registro',
+      error: error.message,
+    });
+  }
+};
+
+// Controlador para obtener registros de una tabla master_
+exports.getMasterTableRecords = async (req, res) => {
+  const { table_name } = req.params;
+  const { caracterizacion_id } = req.query;
+
+  // Validar que la tabla empiece con master_
+  if (!table_name.startsWith('master_')) {
+    return res.status(400).json({ message: 'Nombre de tabla inválido. Debe empezar con master_' });
+  }
+
+  try {
+    let query = `SELECT * FROM "${table_name}"`;
+    const replacements = [];
+
+    if (caracterizacion_id) {
+      query += ` WHERE caracterizacion_id = ?`;
+      replacements.push(caracterizacion_id);
+    }
+
+    query += ` ORDER BY id ASC`;
+
+    const records = await sequelize.query(query, {
+      replacements,
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    return res.status(200).json(records);
+
+  } catch (error) {
+    console.error('Error obteniendo registros de tabla master:', error);
+    return res.status(500).json({
+      message: 'Error obteniendo los registros',
+      error: error.message,
+    });
+  }
+};
+
+// Controlador para obtener un registro específico de una tabla master_
+exports.getMasterTableRecordById = async (req, res) => {
+  const { table_name, record_id } = req.params;
+
+  // Validar que la tabla empiece con master_
+  if (!table_name.startsWith('master_')) {
+    return res.status(400).json({ message: 'Nombre de tabla inválido. Debe empezar con master_' });
+  }
+
+  try {
+    const query = `SELECT * FROM "${table_name}" WHERE id = ?`;
+    const [record] = await sequelize.query(query, {
+      replacements: [record_id],
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    if (!record) {
+      return res.status(404).json({
+        message: 'Registro no encontrado'
+      });
+    }
+
+    return res.status(200).json({ record });
+
+  } catch (error) {
+    console.error('Error obteniendo registro de tabla master:', error);
+    return res.status(500).json({
+      message: 'Error obteniendo el registro',
+      error: error.message,
+    });
+  }
+};

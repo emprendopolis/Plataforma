@@ -6,10 +6,8 @@ import config from '../../config';
 export default function FormulacionKitTab({ id }) {
   const [fields, setFields] = useState([]);
   const [records, setRecords] = useState([]);
-  const [rubros, setRubros] = useState([]);
-  const [selectedRubro, setSelectedRubro] = useState('');
-  const [elementos, setElementos] = useState([]);
-  const [selectedElemento, setSelectedElemento] = useState('');
+  const [codigosKit, setCodigosKit] = useState([]);
+  const [selectedCodigoKit, setSelectedCodigoKit] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -23,19 +21,16 @@ export default function FormulacionKitTab({ id }) {
   const isRole5 = roleId === '5';
   const isRole3 = roleId === '3';
 
-          const tableName = 'kit_proveedores'; // Cambio: tabla específica para kits
-        const rubroTableName = 'kit_rubro'; // Cambio: rubros específicos para kits
-        const elementoTableName = 'kit_elemento'; // Cambio: elementos específicos para kits
-        const piFormulacionTableName = 'master_formulacion'; // Cambio: formulación específica para kits (con columnas adicionales)
+  const tableName = 'kit_proveedores'; // Tabla específica para kits
+  const piFormulacionTableName = 'master_formulacion'; // Formulación específica para kits
 
   const displayedFieldNames = [
+    "codigoKit",
+    "cantidad_bienes",
     "Nombre proveedor",
-    "Rubro",
-    "Elemento",
-    "Descripcion corta",
     "Valor catalogo",
     "Precio",
-    "Puntuacion evaluacion"
+    "Calificacion"
   ];
 
   useEffect(() => {
@@ -48,21 +43,23 @@ export default function FormulacionKitTab({ id }) {
         }
 
         const fieldsUrl = `${config.urls.inscriptions.base}/tables/${tableName}/fields`;
-        const rubrosUrl = `${config.urls.inscriptions.base}/tables/${rubroTableName}/records`;
-        const elementosUrl = `${config.urls.inscriptions.base}/tables/${elementoTableName}/records`;
+        const recordsUrl = `${config.urls.inscriptions.base}/tables/${tableName}/records`;
 
-        const [fieldsResponse, rubrosResponse, elementosResponse] = await Promise.all([
+        const [fieldsResponse, recordsResponse] = await Promise.all([
           axios.get(fieldsUrl, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(rubrosUrl, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(elementosUrl, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(recordsUrl, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         const filteredFields = fieldsResponse.data.filter((field) =>
           displayedFieldNames.includes(field.column_name)
         );
         setFields(filteredFields);
-        setRubros(rubrosResponse.data);
-        setElementos(elementosResponse.data);
+        
+        // Obtener códigos únicos de kit
+        const allRecords = recordsResponse.data;
+        const uniqueCodigosKit = [...new Set(allRecords.map(record => record.codigoKit).filter(Boolean))];
+        setCodigosKit(uniqueCodigosKit);
+        setRecords(allRecords);
 
         setLoading(false);
       } catch (error) {
@@ -77,7 +74,7 @@ export default function FormulacionKitTab({ id }) {
 
   useEffect(() => {
     const fetchRecords = async () => {
-      if (!selectedRubro) {
+      if (!selectedCodigoKit) {
         setRecords([]);
         return;
       }
@@ -85,10 +82,7 @@ export default function FormulacionKitTab({ id }) {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        let recordsUrl = `${config.urls.inscriptions.base}/tables/${tableName}/records?Rubro=${selectedRubro}`;
-        if (selectedElemento) {
-          recordsUrl += `&Elemento=${selectedElemento}`;
-        }
+        const recordsUrl = `${config.urls.inscriptions.base}/tables/${tableName}/records?codigoKit=${selectedCodigoKit}`;
 
         const recordsResponse = await axios.get(recordsUrl, {
           headers: { Authorization: `Bearer ${token}` },
@@ -104,13 +98,13 @@ export default function FormulacionKitTab({ id }) {
     };
 
     fetchRecords();
-  }, [selectedRubro, selectedElemento]);
+  }, [selectedCodigoKit]);
 
   // Mover esta función fuera del useEffect
   const fetchPiFormulacionRecords = async () => {
     try {
       const token = localStorage.getItem('token');
-      const piFormulacionUrl = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
+      const piFormulacionUrl = `${config.urls.inscriptions.base}/master/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
       const response = await axios.get(piFormulacionUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -155,7 +149,7 @@ export default function FormulacionKitTab({ id }) {
 
       setPiFormulacionRecords(combinedData);
     } catch (error) {
-      console.error('Error obteniendo los registros de pi_formulacion_kit:', error);
+      console.error('Error obteniendo los registros de master_formulacion:', error);
     }
   };
 
@@ -192,25 +186,9 @@ export default function FormulacionKitTab({ id }) {
     fetchPriorizacion();
   }, [id]);
 
-  const handleRubroChange = (e) => {
-    setSelectedRubro(e.target.value);
-    setSelectedElemento('');
+  const handleCodigoKitChange = (e) => {
+    setSelectedCodigoKit(e.target.value);
     setSearchTerm('');
-  };
-
-  const handleElementoChange = (e) => {
-    setSelectedElemento(e.target.value);
-    setSearchTerm('');
-  };
-
-  const getElementoName = (elementoId) => {
-    const elemento = elementos.find((el) => String(el.id) === String(elementoId));
-    return elemento ? elemento.Elemento : 'Desconocido';
-  };
-
-  const getRubroName = (rubroId) => {
-    const rubro = rubros.find((r) => String(r.id) === String(rubroId));
-    return rubro ? rubro.Rubro : 'Desconocido';
   };
 
   const getPiFormulacionData = (recordId) => {
@@ -226,13 +204,13 @@ export default function FormulacionKitTab({ id }) {
       const existingPiData = getPiFormulacionData(recordId);
 
       const recordData = {
-        caracterizacion_id: id,
+        caracterizacion_id: parseInt(id),
         rel_id_prov: recordId,
         Cantidad: cantidad,
-        user_id: userId,
+        user_id: parseInt(userId),
       };
 
-      const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
+      const endpoint = `${config.urls.inscriptions.base}/master/tables/${piFormulacionTableName}/record`;
 
       if (existingPiData.id) {
         await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
@@ -245,18 +223,8 @@ export default function FormulacionKitTab({ id }) {
         recordData.id = res.data.id;
       }
 
-      // Actualizar el estado local en lugar de recargar todos los datos
-      setPiFormulacionRecords(prevRecords => {
-        return prevRecords.map(prevRecord => {
-          if (String(prevRecord.rel_id_prov) === String(recordId)) {
-            return {
-              ...prevRecord,
-              Cantidad: cantidad
-            };
-          }
-          return prevRecord;
-        });
-      });
+      // Recargar los datos después de crear o actualizar
+      await fetchPiFormulacionRecords();
     } catch (error) {
       console.error('Error al cambiar la cantidad:', error);
     }
@@ -269,13 +237,17 @@ export default function FormulacionKitTab({ id }) {
       const existingPiData = getPiFormulacionData(record.id);
       const cantidad = existingPiData.Cantidad || 1;
 
+
+
       const recordData = {
-        caracterizacion_id: id,
+        caracterizacion_id: parseInt(id),
         rel_id_prov: record.id,
         Cantidad: cantidad,
-        user_id: userId,
+        user_id: parseInt(userId),
         [field]: value,
       };
+
+
 
       if (field === "Seleccion") {
         if (value === true) {
@@ -300,73 +272,29 @@ export default function FormulacionKitTab({ id }) {
         }
       }
 
-      const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
+      const endpoint = `${config.urls.inscriptions.base}/master/tables/${piFormulacionTableName}/record`;
 
-      console.log('Enviando recordData:', recordData);
+
 
       if (existingPiData.id) {
-        await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
+        const response = await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        console.log('Enviando recordData (POST):', recordData);
         const res = await axios.post(endpoint, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
         recordData.id = res.data.id;
       }
 
-      // Solo actualizar el estado local si no es un checkbox (para evitar doble actualización)
-      if (field !== "pre-Seleccion" && field !== "Seleccion") {
-        setPiFormulacionRecords(prevRecords => {
-          return prevRecords.map(prevRecord => {
-            if (String(prevRecord.rel_id_prov) === String(record.id)) {
-              return {
-                ...prevRecord,
-                [field]: value,
-                ...(field === "Seleccion" && value === true ? { selectionorder: recordData.selectionorder } : {}),
-                ...(field === "Seleccion" && value === false ? { selectionorder: null } : {})
-              };
-            }
-            return prevRecord;
-          });
-        });
+      // Recargar los datos después de crear o actualizar, excepto para textareas
+      if (field !== "Descripcion dimensiones" && field !== "Justificacion") {
+        await fetchPiFormulacionRecords();
       }
     } catch (error) {
       console.error('Error al cambiar la aprobación:', error);
     }
   };
-
-  const groupedRubros = useMemo(() => {
-    const rubroMap = {};
-    piFormulacionRecords.forEach((piRecord) => {
-      if (piRecord["Seleccion"]) {
-        const provider = piRecord.providerData;
-        if (provider) {
-          const rubroName = getRubroName(provider.Rubro);
-          const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
-          const cantidad = parseFloat(piRecord.Cantidad) || 1;
-          const totalPrice = precioCatalogo * cantidad;
-
-          if (rubroMap[rubroName]) {
-            rubroMap[rubroName] += totalPrice;
-          } else {
-            rubroMap[rubroName] = totalPrice;
-          }
-        }
-      }
-    });
-
-    return Object.entries(rubroMap).map(([rubro, total]) => ({
-      rubro,
-      total: total,
-      totalFormateado: total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })
-    }));
-  }, [piFormulacionRecords, rubros]);
-
-  const totalInversion = groupedRubros
-    .reduce((acc, record) => acc + parseFloat(record.total || 0), 0)
-    .toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
   const selectedRecords = piFormulacionRecords
     .filter((piRecord) => piRecord["Seleccion"]);
@@ -383,12 +311,12 @@ export default function FormulacionKitTab({ id }) {
     if (searchTerm) {
       const lowercasedFilter = searchTerm.toLowerCase();
       filtered = filtered.filter(record => {
-        const descripcionCorta = record['Descripcion corta'] || '';
-        return descripcionCorta.toLowerCase().includes(lowercasedFilter);
+        const cantidadBienes = record['cantidad_bienes'] || '';
+        return cantidadBienes.toLowerCase().includes(lowercasedFilter);
       });
     }
     const sortedRecords = filtered.sort(
-      (a, b) => b["Puntuacion evaluacion"] - a["Puntuacion evaluacion"]
+      (a, b) => b["Calificacion"] - a["Calificacion"]
     );
     return sortedRecords; 
   }, [records, searchTerm]);
@@ -402,74 +330,44 @@ export default function FormulacionKitTab({ id }) {
         <div className="alert alert-danger">{error}</div>
       ) : (
         <>
-          {/* 2. Deshabilitar selector de Rubro si es role 5 */}
+          {/* Campo Código Kit */}
           <div className="form-group">
-            <label>Rubro</label>
+            <label>Código Kit</label>
             <select
               className="form-control"
-              value={selectedRubro}
-              onChange={handleRubroChange}
+              value={selectedCodigoKit}
+              onChange={handleCodigoKitChange}
               disabled={isRole5 || isRole3}
             >
-              <option value="">-- Selecciona un rubro --</option>
-              {rubros.map((rubro) => (
-                <option key={rubro.id} value={rubro.id}>
-                  {rubro.Rubro}
+              <option value="">-- Selecciona un código kit --</option>
+              {codigosKit.map((codigo) => (
+                <option key={codigo} value={codigo}>
+                  {codigo}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* 3. Deshabilitar selector de Elemento si es role 5 (o si no hay rubro) */}
+          {/* Campo Descripción por bien */}
           <div className="form-group mt-3">
-            <label>Elemento</label>
-            <select
-              className="form-control"
-              value={selectedElemento}
-              onChange={handleElementoChange}
-              disabled={!selectedRubro || isRole5 || isRole3}
-            >
-              <option value="">-- Selecciona un elemento --</option>
-              {elementos.map((elemento) => (
-                <option key={elemento.id} value={elemento.id}>
-                  {elemento.Elemento}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 4. (Opcional) Si quieres también bloquear la búsqueda cuando es role 5 */}
-          <div className="form-group mt-3">
-            <label>Búsqueda por Descripción Corta</label>
+            <label>Descripción por bien</label>
             <input
               type="text"
               className="form-control"
               placeholder="Buscar..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={!selectedRubro || isRole5 || isRole3}
+              disabled={!selectedCodigoKit || isRole5 || isRole3}
             />
           </div>
 
           <table className="table tabla-moderna mt-3">
             <thead>
               <tr>
-                {fields.map((field) => (
-                  <th
-                    key={field.column_name}
-                    className={
-                      field.column_name === 'Precio'
-                        ? 'columna-precio'
-                        : field.column_name === 'Rubro'
-                        ? 'columna-rubro'
-                        : field.column_name === 'Elemento'
-                        ? 'columna-elemento'
-                        : ''
-                    }
-                  >
-                    {field.column_name.replace('_', ' ')}
-                  </th>
-                ))}
+                <th>Código Kit</th>
+                <th>Descripción por bien</th>
+                <th>Precio</th>
+                <th>Descripción Corta</th>
                 <th className="text-center columna-cantidad">Cantidad</th>
                 <th className="text-center columna-preseleccion">Pre-selección</th>
                 <th className="text-center columna-seleccion">Selección</th>
@@ -482,28 +380,12 @@ export default function FormulacionKitTab({ id }) {
 
                   return (
                     <tr key={record.id}>
-                      {fields.map((field) => (
-                        <td
-                          key={field.column_name}
-                          className={
-                            field.column_name === 'Precio'
-                              ? 'columna-precio'
-                              : field.column_name === 'Rubro'
-                              ? 'columna-rubro'
-                              : field.column_name === 'Elemento'
-                              ? 'columna-elemento'
-                              : ''
-                          }
-                        >
-                          {field.column_name === 'Elemento'
-                            ? getElementoName(record.Elemento)
-                            : field.column_name === 'Rubro'
-                            ? getRubroName(record.Rubro)
-                            : field.column_name === 'Precio'
-                            ? `$ ${Number(record[field.column_name]).toLocaleString('es-CO')}`
-                            : record[field.column_name]}
-                        </td>
-                      ))}
+                      <td>{record.codigoKit}</td>
+                      <td>{record.cantidad_bienes}</td>
+                      <td className="columna-precio">
+                        {record.Precio !== undefined ? `$ ${Number(record.Precio).toLocaleString('es-CO')}` : ''}
+                      </td>
+                      <td>{record["Descripcion corta"] || ''}</td>
                       <td className="text-center columna-cantidad">
                         <input
                           type="number"
@@ -519,7 +401,7 @@ export default function FormulacionKitTab({ id }) {
                               val = '1';
                             }
                             setLocalCantidades((prev) => ({ ...prev, [record.id]: val }));
-                            handleCantidadChange(record.id, Number(val));
+                            handleCantidadChange(record.id, parseInt(val));
                           }}
                           style={{ width: '60px', MozAppearance: 'textfield', textAlign: 'center' }}
                           className="no-spinner"
@@ -530,23 +412,11 @@ export default function FormulacionKitTab({ id }) {
                       <td className="text-center columna-preseleccion">
                         <input
                           type="checkbox"
-                          checked={piData["pre-Seleccion"] || false}
+                          checked={piData["pre-seleccion"] || false}
                           onChange={(e) => {
                             const newValue = e.target.checked;
-                            // Actualizar inmediatamente el estado local
-                            setPiFormulacionRecords(prevRecords => {
-                              return prevRecords.map(prevRecord => {
-                                if (String(prevRecord.rel_id_prov) === String(record.id)) {
-                                  return {
-                                    ...prevRecord,
-                                    "pre-Seleccion": newValue
-                                  };
-                                }
-                                return prevRecord;
-                              });
-                            });
                             // Luego hacer la llamada al servidor
-                            handleApprovalChange(record, "pre-Seleccion", newValue);
+                            handleApprovalChange(record, "pre-seleccion", newValue);
                           }}
                           disabled={isRole3}
                         />
@@ -557,20 +427,6 @@ export default function FormulacionKitTab({ id }) {
                           checked={piData["Seleccion"] || false}
                           onChange={(e) => {
                             const newValue = e.target.checked;
-                            // Actualizar inmediatamente el estado local
-                            setPiFormulacionRecords(prevRecords => {
-                              return prevRecords.map(prevRecord => {
-                                if (String(prevRecord.rel_id_prov) === String(record.id)) {
-                                  return {
-                                    ...prevRecord,
-                                    "Seleccion": newValue,
-                                    ...(newValue === true ? { selectionorder: null } : {}),
-                                    ...(newValue === false ? { selectionorder: null } : {})
-                                  };
-                                }
-                                return prevRecord;
-                              });
-                            });
                             // Luego hacer la llamada al servidor
                             handleApprovalChange(record, "Seleccion", newValue);
                           }}
@@ -582,7 +438,7 @@ export default function FormulacionKitTab({ id }) {
                 })
               ) : (
                 <tr>
-                  <td colSpan={fields.length + 4} className="text-center">
+                  <td colSpan={7} className="text-center">
                     No hay coincidencias.
                   </td>
                 </tr>
@@ -591,16 +447,16 @@ export default function FormulacionKitTab({ id }) {
           </table>
 
           <div className="mt-4">
-            <h5>Kits Seleccionados</h5>
+            <h5>Productos Seleccionados</h5>
             {selectedRecords.length > 0 ? (
               <table className="table tabla-moderna">
                 <thead>
                   <tr>
                     <th className="text-center">Prioridad</th>
-                    <th>Elemento</th>
-                    <th>Descripción</th>
+                    <th>Código Kit</th>
+                    <th>Descripción por bien</th>
                     <th className="text-center columna-cantidad">Cantidad</th>
-                    <th>Precio Proveedor</th>
+                    <th>Precio</th>
                     <th>Descripción dimensiones</th>
                     <th>Justificación</th>
                   </tr>
@@ -611,18 +467,15 @@ export default function FormulacionKitTab({ id }) {
                     if (!provider) return null;
 
                     const cantidad = parseFloat(piRecord.Cantidad) || 1;
-                    const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
-                    const total = (precioCatalogo * cantidad);
-                    const precioFormateado = precioCatalogo.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
-                    const totalFormateado = total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+                    const precio = parseFloat(provider["Precio"]) || 0;
 
                     return (
                       <tr key={piRecord.rel_id_prov}>
                         <td className="text-center">{piRecord.selectionorder || ''}</td>
-                        <td>{getElementoName(provider.Elemento)}</td>
-                        <td>{provider["Descripcion corta"] || ''}</td>
+                        <td>{provider.codigoKit}</td>
+                        <td>{provider.cantidad_bienes}</td>
                         <td className="text-center columna-cantidad">{cantidad}</td>
-                        <td>{provider["Precio"] !== undefined ? Number(provider["Precio"]).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : ''}</td>
+                        <td>{precio !== 0 ? `$ ${precio.toLocaleString('es-CO')}` : ''}</td>
                         <td>
                           <textarea
                             value={piRecord["Descripcion dimensiones"] || ''}
@@ -681,47 +534,11 @@ export default function FormulacionKitTab({ id }) {
             )}
           </div>
 
-          <div className="mt-4">
+          {/* Resumen de inversión oculto según especificación */}
+          {/* <div className="mt-4">
             <h5>Resumen de la Inversión en Kits</h5>
-            {groupedRubros.length > 0 ? (
-              <table className="table tabla-moderna">
-                <thead>
-                  <tr>
-                    <th>Rubro</th>
-                    <th>Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupedRubros.map((record) => (
-                    <tr key={record.rubro}>
-                      <td>{record.rubro}</td>
-                      <td>{record.totalFormateado}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td>Total</td>
-                    <td>{totalInversion}</td>
-                  </tr>
-                  <tr>
-                    <td style={{ color: 'red', fontWeight: 'bold' }}>Valor asignado</td>
-                    <td style={{ color: 'red', fontWeight: 'bold' }}>
-                      {priorizacionCapitalizacion === null || priorizacionCapitalizacion === undefined || priorizacionCapitalizacion === ''
-                        ? 'Sin asignación de priorización'
-                        : priorizacionCapitalizacion === 'Víctima del conflicto armado'
-                        ? '$ 900.000'
-                        : priorizacionCapitalizacion === 'MyPyme/Emprendimiento'
-                        ? '$ 3.000.000'
-                        : 'Sin asignación de priorización'}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            ) : (
-              <p>No hay kits seleccionados para inversión.</p>
-            )}
-          </div>
+            ... contenido del resumen ...
+          </div> */}
         </>
       )}
     </div>
