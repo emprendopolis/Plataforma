@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import config from '../config';
 import DatosTab from './PlanDeInversion/DatosTab';
 import DiagnosticoTab from './PlanDeInversion/DiagnosticoTab';
 import PropuestaMejoraTab from './PlanDeInversion/PropuestaMejoraTab'; // Nuevo componente
@@ -21,6 +23,82 @@ import './PlanDeInversion/PlanDeInversion.css'; // Archivo CSS para estilos pers
 export default function PlanDeInversion() {
   const { id } = useParams(); // ID del registro de caracterización
   const [activeTab, setActiveTab] = useState('Datos');
+  const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Obtener el valor de Priorizacion capitalizacion
+  useEffect(() => {
+    const fetchPriorizacion = async () => {
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+        
+        const response = await axios.get(
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        setPriorizacionCapitalizacion(response.data.record?.['Priorizacion capitalizacion'] ?? null);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error obteniendo la priorización:', error);
+        setPriorizacionCapitalizacion(null);
+        setLoading(false);
+      }
+    };
+    
+    fetchPriorizacion();
+  }, [id]);
+
+  // Cambiar a un tab válido si el tab activo debe ocultarse
+  useEffect(() => {
+    if (!loading && priorizacionCapitalizacion && !shouldShowTab(activeTab)) {
+      // Cambiar al primer tab disponible (siempre será "Datos")
+      setActiveTab('Datos');
+    }
+  }, [loading, priorizacionCapitalizacion, activeTab]);
+
+  // Función para determinar si un tab debe mostrarse
+  const shouldShowTab = (tabName) => {
+    if (!priorizacionCapitalizacion) return true; // Mostrar todos los tabs si no hay datos
+    
+    switch (tabName) {
+      case 'FormulacionProv':
+      case 'GenerarFicha':
+        // Ocultar si es Grupo 1
+        return priorizacionCapitalizacion !== 'Grupo 1';
+        
+      case 'FormulacionKit':
+      case 'GenerarFichaKit':
+        // Ocultar si es Grupo 2
+        return priorizacionCapitalizacion !== 'Grupo 2';
+        
+      default:
+        return true; // Mostrar otros tabs siempre
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="content-wrapper">
+        <section className="content">
+          <div className="container-fluid">
+            <div className="text-center">
+              <i className="fas fa-spinner fa-spin"></i> Cargando configuración...
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="content-wrapper">
@@ -115,30 +193,34 @@ export default function PlanDeInversion() {
                   <i className="fas fa-tasks"></i> Formulación
                 </a>
               </li> */}
-              <li className={`nav-item ${activeTab === 'FormulacionProv' ? 'active' : ''}`}>
-                <a
-                  href="#"
-                  className="nav-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab('FormulacionProv');
-                  }}
-                >
-                  <i className="fas fa-handshake"></i> Formulación con Proveedores
-                </a>
-              </li>
-              <li className={`nav-item ${activeTab === 'FormulacionKit' ? 'active' : ''}`}>
-                <a
-                  href="#"
-                  className="nav-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab('FormulacionKit');
-                  }}
-                >
-                  <i className="fas fa-box"></i> Formulación con Kits
-                </a>
-              </li>
+              {shouldShowTab('FormulacionProv') && (
+                <li className={`nav-item ${activeTab === 'FormulacionProv' ? 'active' : ''}`}>
+                  <a
+                    href="#"
+                    className="nav-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab('FormulacionProv');
+                    }}
+                  >
+                    <i className="fas fa-handshake"></i> Formulación con Proveedores
+                  </a>
+                </li>
+              )}
+              {shouldShowTab('FormulacionKit') && (
+                <li className={`nav-item ${activeTab === 'FormulacionKit' ? 'active' : ''}`}>
+                  <a
+                    href="#"
+                    className="nav-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab('FormulacionKit');
+                    }}
+                  >
+                    <i className="fas fa-box"></i> Formulación con Kits
+                  </a>
+                </li>
+              )}
               {/*<li className={`nav-item ${activeTab === 'InfoBancaria' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -199,30 +281,34 @@ export default function PlanDeInversion() {
                   <i className="fas fa-poll"></i> Encuesta de Salida
                 </a>
               </li> */}
-              <li className={`nav-item ${activeTab === 'GenerarFicha' ? 'active' : ''}`}>
-                <a
-                  href="#"
-                  className="nav-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab('GenerarFicha');
-                  }}
-                >
-                  <i className="fas fa-file-pdf"></i> Generar Ficha en PDF
-                </a>
-              </li>
-              <li className={`nav-item ${activeTab === 'GenerarFichaKit' ? 'active' : ''}`}>
-                <a
-                  href="#"
-                  className="nav-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab('GenerarFichaKit');
-                  }}
-                >
-                  <i className="fas fa-file-pdf"></i> Generar Ficha de Kits en PDF
-                </a>
-              </li>
+              {shouldShowTab('GenerarFicha') && (
+                <li className={`nav-item ${activeTab === 'GenerarFicha' ? 'active' : ''}`}>
+                  <a
+                    href="#"
+                    className="nav-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab('GenerarFicha');
+                    }}
+                  >
+                    <i className="fas fa-file-pdf"></i> Generar Ficha en PDF
+                  </a>
+                </li>
+              )}
+              {shouldShowTab('GenerarFichaKit') && (
+                <li className={`nav-item ${activeTab === 'GenerarFichaKit' ? 'active' : ''}`}>
+                  <a
+                    href="#"
+                    className="nav-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab('GenerarFichaKit');
+                    }}
+                  >
+                    <i className="fas fa-file-pdf"></i> Generar Ficha de Kits en PDF
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 
@@ -235,15 +321,15 @@ export default function PlanDeInversion() {
             {/* {activeTab === 'Capacitacion' && <CapacitacionTab id={id} />} */}
             {activeTab === 'Validaciones' && <ValidacionesTab id={id} />}
             {/* {activeTab === 'Formulacion' && <FormulacionTab id={id} />} */}
-            {activeTab === 'FormulacionProv' && <FormulacionProvTab id={id} />}
-            {activeTab === 'FormulacionKit' && <FormulacionKitTab id={id} />}
+            {activeTab === 'FormulacionProv' && shouldShowTab('FormulacionProv') && <FormulacionProvTab id={id} />}
+            {activeTab === 'FormulacionKit' && shouldShowTab('FormulacionKit') && <FormulacionKitTab id={id} />}
             {activeTab === 'InfoBancaria' && <InfoBancariaTab id={id} />}
             {/* {activeTab === 'Anexos' && <AnexosTab id={id} />} */}
             {activeTab === 'AnexosV2' && <AnexosV2Tab id={id} />}
             {activeTab === 'Ejecucion' && <EjecucionTab id={id} />}
             {/* {activeTab === 'EncuestaSalida' && <EncuestaSalidaTab id={id} />} */}
-            {activeTab === 'GenerarFicha' && <GenerarFichaTab id={id} />}
-            {activeTab === 'GenerarFichaKit' && <GenerarFichaKitTab id={id} />}
+            {activeTab === 'GenerarFicha' && shouldShowTab('GenerarFicha') && <GenerarFichaTab id={id} />}
+            {activeTab === 'GenerarFichaKit' && shouldShowTab('GenerarFichaKit') && <GenerarFichaKitTab id={id} />}
           </div>
         </div>
       </section>

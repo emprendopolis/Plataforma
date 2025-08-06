@@ -92,8 +92,8 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* Proveedores: visible para SuperAdmin (role === 1) y Admin (role === 2) */}
-              {(role === 1 || role === 2) && (
+              {/* Proveedores: visible solo para SuperAdmin (role === 1) */}
+              {role === 1 && (
                 <li className="nav-item">
                   <Link to="/provider-tables" className="nav-link">
                     <i className="nav-icon fas fa-truck" />
@@ -102,8 +102,8 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* ProveedoresKit: visible para SuperAdmin (role === 1) y Admin (role === 2) */}
-              {(role === 1 || role === 2) && (
+              {/* ProveedoresKit: visible solo para SuperAdmin (role === 1) */}
+              {role === 1 && (
                 <li className="nav-item">
                   <Link to="/provider-kit-tables" className="nav-link">
                     <i className="nav-icon fas fa-box" />

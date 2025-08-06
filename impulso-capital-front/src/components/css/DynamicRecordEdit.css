@@ -1,3 +1,33 @@
 .content-wrapper {
     margin-bottom: 100px;
 }
+
+/* Espaciado mejorado para el formulario principal */
+.dynamic-record-form {
+    padding: 15px;
+    margin-left: 5px;
+}
+
+/* Espaciado mejorado para los campos del formulario */
+.dynamic-record-form .form-group {
+    margin-right: 15px;
+    margin-bottom: 20px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.dynamic-record-form .form-group label {
+    margin-bottom: 10px;
+    font-weight: 500;
+    display: block;
+}
+
+.dynamic-record-form .form-group .form-control {
+    margin-bottom: 5px;
+    width: 100%;
+}
+
+.dynamic-record-form .form-group select.form-control,
+.dynamic-record-form .form-group input.form-control {
+    padding: 8px 12px;
+}

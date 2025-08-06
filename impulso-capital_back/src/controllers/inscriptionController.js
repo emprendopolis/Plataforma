@@ -79,6 +79,7 @@ exports.createTable = async (req, res) => {
       'VARCHAR(255)': Sequelize.STRING, // Texto con longitud máxima de 255 caracteres.
       'TEXT': Sequelize.TEXT,           // Texto sin límite de longitud.
       'INTEGER': Sequelize.INTEGER,     // Número entero.
+      'BIGINT': Sequelize.BIGINT,       // Número entero grande (bigint).
       'DECIMAL': Sequelize.DECIMAL,     // Número decimal para almacenar valores numéricos con precisión.
       'BOOLEAN': Sequelize.BOOLEAN,     // Valores booleanos (true/false).
       'DATE': Sequelize.DATE,           // Fechas.
@@ -284,6 +285,7 @@ exports.editTable = async (req, res) => {
       'CHARACTER VARYING': Sequelize.STRING,
       'TEXT': Sequelize.TEXT,
       'INTEGER': Sequelize.INTEGER,
+      'BIGINT': Sequelize.BIGINT,
       'DECIMAL': Sequelize.DECIMAL,
       'BOOLEAN': Sequelize.BOOLEAN,
       'DATE': Sequelize.DATE,
@@ -528,6 +530,9 @@ exports.getTableFields = async (req, res) => {
         case 'integer':
           mappedType = 'INTEGER';
           break;
+        case 'bigint':
+          mappedType = 'BIGINT';
+          break;
         case 'numeric':
         case 'decimal':
           mappedType = 'DECIMAL';
@@ -689,6 +694,7 @@ exports.uploadCsv = async (req, res) => {
       'character varying': Sequelize.STRING, // Soporte para VARCHAR.
       text: Sequelize.TEXT,                  // Soporte para TEXT.
       integer: Sequelize.INTEGER,
+      bigint: Sequelize.BIGINT,              // Soporte para BIGINT.
       boolean: Sequelize.BOOLEAN,
       date: Sequelize.DATE,
     };
@@ -1017,6 +1023,7 @@ exports.getTableRecordById = async (req, res) => {
       'character varying': Sequelize.STRING,
       text: Sequelize.TEXT,
       integer: Sequelize.INTEGER,
+      bigint: Sequelize.BIGINT,
       boolean: Sequelize.BOOLEAN,
       date: Sequelize.DATE,
     };
@@ -1493,6 +1500,7 @@ exports.bulkUpdateRecords = async (req, res) => {
         'character varying': Sequelize.STRING,
         text: Sequelize.TEXT,
         integer: Sequelize.INTEGER,
+        bigint: Sequelize.BIGINT,
         boolean: Sequelize.BOOLEAN,
         date: Sequelize.DATE,
       };
@@ -2574,6 +2582,7 @@ exports.createNewRecord = async (req, res) => {
         'character varying': Sequelize.STRING,
         text: Sequelize.TEXT,
         integer: Sequelize.INTEGER,
+        bigint: Sequelize.BIGINT,
         boolean: Sequelize.BOOLEAN,
         date: Sequelize.DATE,
       };
@@ -2651,6 +2660,7 @@ exports.getRelatedData = async (req, res) => {
       'character varying': Sequelize.STRING,
       text: Sequelize.TEXT,
       integer: Sequelize.INTEGER,
+      bigint: Sequelize.BIGINT,
       boolean: Sequelize.BOOLEAN,
       date: Sequelize.DATE,
     };
@@ -2799,6 +2809,9 @@ exports.getTableFields = async (req, res) => {
           break;
         case 'integer':
           mappedType = 'INTEGER';
+          break;
+        case 'bigint':
+          mappedType = 'BIGINT';
           break;
         case 'numeric':
         case 'decimal':

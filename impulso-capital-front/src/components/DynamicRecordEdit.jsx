@@ -17,6 +17,7 @@ export default function DynamicRecordEdit() {
   const [isPrimaryTable, setIsPrimaryTable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   const [calificacion, setCalificacion] = useState(0);
 
@@ -47,6 +48,27 @@ export default function DynamicRecordEdit() {
   const [estadoFieldExists, setEstadoFieldExists] = useState(false);
 
   const [asesors, setAsesors] = useState([]);
+
+  // Mapeo de nombres personalizados para campos
+  const fieldLabels = {
+    'grupospoblacioneles': 'Grupos poblacionales',
+    'tipodocumentoup': 'Tipo de Documento Unidad Productiva',
+    'Celular 2': 'Celular Unidad Productiva',
+    'correoup': 'Correo Unidad Productiva',
+    'Direccion de la unidad de negocio': 'Direccion de la Unidad Productiva',
+    'sector_general': 'Sector general',
+    'cargoempresa': 'Cargo en la empresa',
+    'tienerut': 'Tiene RUT',
+    'lugaractividad': 'Lugar actividad',
+    'tipoemplazamiento': 'Tipo de emplazamiento',
+    'motivodenegocio': 'Motivo de negocio',
+    'Para la comercializacion de su producto utiliza canales como': 'Medio de comercialización'
+  };
+
+  // Función para obtener el nombre personalizado o usar el original
+  const getFieldLabel = (fieldName) => {
+    return fieldLabels[fieldName] || fieldName;
+  };
 
   const [selectedFileForCompliance, setSelectedFileForCompliance] = useState(null);
   const [complianceCumple, setComplianceCumple] = useState(null);
@@ -183,7 +205,7 @@ export default function DynamicRecordEdit() {
         const estadoExists = !!estadoField;
         setEstadoFieldExists(estadoExists);
 
-        const fieldsToExclude = ['Estado', 'Acepta terminos', 'created_at', 'updated_at'];
+        const fieldsToExclude = ['id', 'Estado', 'Acepta terminos', 'created_at', 'updated_at', 'Priorizacion capitalizacion', 'Asesor'];
         const filteredFields = fieldsResponse.data.filter(
           (field) => !fieldsToExclude.includes(field.column_name)
         );
@@ -351,6 +373,10 @@ export default function DynamicRecordEdit() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Limpiar mensajes anteriores
+      setError(null);
+      setSuccessMessage(null);
+      
       const token = localStorage.getItem('token');
 
       await axios.put(
@@ -362,7 +388,15 @@ export default function DynamicRecordEdit() {
           },
         }
       );
-      navigate(`/table/${tableName}`);
+      
+      // Mostrar mensaje de éxito y permanecer en la página
+      setSuccessMessage('Información actualizada correctamente');
+      
+      // Opcional: Ocultar el mensaje después de unos segundos
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      
     } catch (error) {
       console.error('Error actualizando el registro:', error);
       if (error.response) {
@@ -904,15 +938,16 @@ export default function DynamicRecordEdit() {
       <section className="content">
         <div className="container-fluid">
           {error && <div className="alert alert-danger">{error}</div>}
+          {successMessage && <div className="alert alert-success">{successMessage}</div>}
           {loading ? (
             <div>Cargando...</div>
           ) : (
             <div className="row">
               <div className={isPrimaryTable ? 'col-md-8' : 'col-md-12'}>
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} className="dynamic-record-form">
                   {fields.map((field) => (
                     <div className="form-group" key={field.column_name}>
-                      <label>{field.column_name}</label>
+                      <label>{getFieldLabel(field.column_name)}</label>
                       {field.column_name === 'id' ? (
                         <input
                           type="text"

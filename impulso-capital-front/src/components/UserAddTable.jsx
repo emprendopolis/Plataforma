@@ -105,7 +105,7 @@ export default function UserAddTable() {
       console.log('Datos enviados al backend:', tableData); // Verificar los datos antes de enviarlos
 
       await axios.post(
-        `${config.urls.inscriptions}/create-table`,
+        `${config.urls.inscriptions.base}/create-table`,
         tableData,
         {
           headers: { Authorization: `Bearer ${token}` },
