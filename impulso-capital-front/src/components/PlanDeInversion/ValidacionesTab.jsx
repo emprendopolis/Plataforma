@@ -291,7 +291,7 @@ export default function ValidacionesTab({ id }) {
             </div>
           </div>
 
-          <div className="form-group">
+          {/* <div className="form-group">
             <label>Aprobación Alcaldía</label>
             <div>
               <button
@@ -309,7 +309,7 @@ export default function ValidacionesTab({ id }) {
                 Rechazar
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* <div className="mt-4" style={{ width: '100%' }}>
             <h5>Archivos adicionales</h5>

@@ -645,6 +645,8 @@ exports.uploadCsv = async (req, res) => {
   // Extrae 'table_name' de los parámetros de la solicitud (URL).
   const { table_name } = req.params;
 
+  console.log('🔍 [uploadCsv] Iniciando carga CSV para tabla:', table_name);
+
   // Verificar si el archivo CSV fue cargado.
   if (!req.file) {
     return res.status(400).json({ message: 'Por favor sube un archivo CSV' });
@@ -729,6 +731,12 @@ exports.uploadCsv = async (req, res) => {
       freezeTableName: true, // Evitar pluralizar el nombre de la tabla.
     });
 
+    // Crear un mapeo de tipos de datos para uso en el procesamiento
+    const columnTypes = {};
+    columns.forEach(column => {
+      columnTypes[column.column_name] = column.data_type;
+    });
+
     // ----------------------------------------------------------------------------------------
     // ---------------------------- PROCESAR Y LEER EL ARCHIVO CSV ----------------------------
     // ----------------------------------------------------------------------------------------
@@ -740,15 +748,57 @@ exports.uploadCsv = async (req, res) => {
     fs.createReadStream(filePath)
       .pipe(csvParser())
       .on('data', (data) => {
+        
         // Tratar los valores del CSV y convertirlos a un formato adecuado para la base de datos.
         const processedData = Object.keys(data).reduce((acc, key) => {
           if (tableColumns[key]) {
             // Asegurarse de que los valores no sean nulos para los campos de tipo VARCHAR y TEXT.
             if (tableColumns[key].type === Sequelize.STRING || tableColumns[key].type === Sequelize.TEXT) {
               acc[key] = data[key] ? data[key].toString().trim() : ''; // Convertir a cadena y limpiar espacios.
+            } else if (tableColumns[key].type === Sequelize.INTEGER || tableColumns[key].type === Sequelize.BIGINT) {
+              // Manejar campos INTEGER - convertir vacíos a null o 0
+              if (data[key] === '' || data[key] === null || data[key] === undefined) {
+                acc[key] = null; // Usar null para campos vacíos en INTEGER
+              } else {
+                const intValue = parseInt(data[key]);
+                acc[key] = isNaN(intValue) ? null : intValue;
+              }
+            } else if (tableColumns[key].type === Sequelize.BOOLEAN) {
+              // Manejar campos BOOLEAN
+              if (data[key] === '' || data[key] === null || data[key] === undefined) {
+                acc[key] = null;
+              } else {
+                acc[key] = data[key] === 'true' || data[key] === '1' || data[key] === true;
+              }
             } else {
-              acc[key] = data[key]; // Asignar el valor directamente para otros tipos de datos.
+              // Para otros tipos, aplicar lógica específica basada en el tipo de datos real
+              const dataType = columnTypes[key];
+              
+              if (dataType === 'integer' || dataType === 'bigint') {
+                // Manejar campos INTEGER/BIGINT
+                if (data[key] === '' || data[key] === null || data[key] === undefined) {
+                  acc[key] = null;
+                } else {
+                  const intValue = parseInt(data[key]);
+                  acc[key] = isNaN(intValue) ? null : intValue;
+                }
+              } else if (dataType === 'text' || dataType === 'character varying') {
+                // Manejar campos TEXT/VARCHAR
+                acc[key] = data[key] ? data[key].toString().trim() : '';
+              } else if (dataType === 'boolean') {
+                // Manejar campos BOOLEAN
+                if (data[key] === '' || data[key] === null || data[key] === undefined) {
+                  acc[key] = null;
+                } else {
+                  acc[key] = data[key] === 'true' || data[key] === '1' || data[key] === true;
+                }
+              } else {
+                // Para otros tipos, asignar el valor directamente
+                acc[key] = data[key];
+              }
             }
+          } else {
+            console.log('⚠️ Columna no encontrada en tabla:', key);
           }
           return acc;
         }, {});
@@ -766,24 +816,37 @@ exports.uploadCsv = async (req, res) => {
           // ----------------------- INSERTAR DATOS EN LA TABLA -------------------------------------
           // ----------------------------------------------------------------------------------------
 
+          console.log(`✅ [uploadCsv] Insertados ${results.length} registros en ${table_name}`);
+
           // Insertar los datos del CSV en la tabla usando 'bulkCreate' para realizar la inserción masiva.
           await Table.bulkCreate(results, { validate: true });
 
           // Responder con un mensaje de éxito si la inserción es exitosa.
           res.status(201).json({ message: 'Datos insertados con éxito en la tabla' });
         } catch (error) {
-          console.error('Error insertando datos en la tabla:', error);
+          console.error('❌ [uploadCsv] Error insertando datos:', error.message);
           res.status(500).json({
             message: 'Error insertando datos en la tabla',
             error: error.message,
           });
         } finally {
           // Eliminar el archivo CSV temporal para liberar espacio.
-          fs.unlinkSync(filePath);
+          try {
+            fs.unlinkSync(filePath);
+          } catch (unlinkError) {
+            console.log('⚠️ Error eliminando archivo temporal:', unlinkError.message);
+          }
         }
+      })
+      .on('error', (error) => {
+        console.error('❌ [uploadCsv] Error leyendo archivo CSV:', error.message);
+        res.status(500).json({
+          message: 'Error leyendo el archivo CSV',
+          error: error.message,
+        });
       });
   } catch (error) {
-    console.error('Error procesando el archivo CSV:', error);
+    console.error('❌ [uploadCsv] Error general:', error.message);
     res.status(500).json({
       message: 'Error procesando el archivo CSV',
       error: error.message,

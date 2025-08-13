@@ -297,17 +297,24 @@ export default function GenerarFichaKitTab({ id }) {
       const nombreEmprendimiento = caracterizacionData["Nombre del emprendimiento"] || 'No disponible';
       const caracterizacionId = id || 'No disponible';
 
-      // Agregar Nombre del Emprendimiento con ID
+      // Agregar Nombre del Emprendimiento con ID en una sola línea
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       const tituloCompleto = `${nombreEmprendimiento} - ID: ${caracterizacionId}`;
-      doc.text(tituloCompleto, pageWidth / 2, yPosition, { align: 'center' });
-
-      yPosition += 20;
+      
+      // Verificar si el texto es muy largo y dividirlo si es necesario
+      const maxWidth = pageWidth - 2 * margin;
+      const tituloLines = doc.splitTextToSize(tituloCompleto, maxWidth);
+      
+      tituloLines.forEach((line, index) => {
+        doc.text(line, pageWidth / 2, yPosition + (index * 16), { align: 'center' });
+      });
+      
+      yPosition += (tituloLines.length * 16) + 10;
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
 
-      // Agregar Localidad
+      // Agregar Localidad en línea separada
       const localidadLabel = localidadName && localidadName !== "Localidad no encontrada"
         ? `Localidad: ${localidadName}`
         : '';
