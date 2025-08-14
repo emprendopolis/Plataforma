@@ -3583,39 +3583,44 @@ exports.getSignedUrl = async (req, res) => {
 // ----------------------------------------------------------------------------------------
 
 exports.uploadAnexosV2File = async (req, res) => {
-  const { table_name, record_id } = req.params;
   const { fileName, caracterizacion_id, source, user_id, fieldName } = req.body;
   const finalUserId = user_id || 0; 
 
+  console.log('🔍 [uploadAnexosV2File] Iniciando...');
+  console.log('📋 Parámetros recibidos:', { fileName, caracterizacion_id, source, user_id, fieldName });
+
   try {
     if (!req.file) {
+      console.log('❌ No se subió ningún archivo');
       return res.status(400).json({ message: 'No se ha subido ningún archivo' });
     }
 
-    if (table_name !== 'pi_anexosv2') {
-      return res.status(400).json({ message: 'Este endpoint es solo para pi_anexosv2' });
-    }
-
     if (!caracterizacion_id) {
+      console.log('❌ Falta caracterizacion_id');
       return res.status(400).json({
         message: 'El ID de caracterización es requerido',
       });
     }
 
     if (!fieldName) {
+      console.log('❌ Falta fieldName');
       return res.status(400).json({
         message: 'El nombre del campo es requerido para AnexosV2',
       });
     }
 
     const finalFileName = fileName || req.file.originalname;
+    console.log('📄 Nombre final del archivo:', finalFileName);
 
     // Generar la ruta de GCS usando generateVisita1Path
     let gcsPath;
     try {
+      console.log('🔄 Generando ruta GCS...');
       const { generateVisita1Path } = require('../utils/gcs');
       gcsPath = await generateVisita1Path(caracterizacion_id, fieldName, finalFileName);
+      console.log('✅ Ruta GCS generada:', gcsPath);
     } catch (pathError) {
+      console.error('❌ Error generando ruta GCS:', pathError);
       return res.status(500).json({
         message: 'Error generando la ruta del archivo',
         error: pathError.message,

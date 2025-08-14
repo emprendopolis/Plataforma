@@ -18,6 +18,7 @@ const DOCUMENT_CODES = {
   'acta_visita_1': 'AV1',
   'plan_inversion': 'PI',
   'evidencia_fotografica_1': 'RF1',
+  'acta_retiro': 'AR',
   
   // Documentos Iniciales (Empresas)
   'cedula_ciudadania': 'CC',
@@ -45,6 +46,8 @@ const DOCUMENT_TYPES = {
 async function getUserData(caracterizacion_id) {
   const sequelize = require('../utils/sequelize');
   
+  console.log('🔍 [getUserData] Buscando usuario con caracterizacion_id:', caracterizacion_id);
+  
   const query = `
     SELECT 
       "Numero de identificacion" as cedula,
@@ -59,15 +62,21 @@ async function getUserData(caracterizacion_id) {
     type: sequelize.QueryTypes.SELECT,
   });
   
+  console.log('📋 [getUserData] Resultado de la consulta:', result);
+  
   if (!result) {
+    console.log('❌ [getUserData] No se encontró el usuario');
     throw new Error(`No se encontró el usuario con caracterizacion_id: ${caracterizacion_id}`);
   }
   
-  return {
+  const userData = {
     cedula: result.cedula,
     nombre: result.nombre,
     grupo: result.grupo || 'Sin Grupo'
   };
+  
+  console.log('✅ [getUserData] Datos del usuario:', userData);
+  return userData;
 }
 
 /**
@@ -78,16 +87,22 @@ async function getUserData(caracterizacion_id) {
  * @returns {Promise<string>} - Ruta completa en GCS
  */
 async function generateVisita1Path(caracterizacion_id, fieldName, fileName) {
+  console.log('🔍 [generateVisita1Path] Iniciando...');
+  console.log('📋 Parámetros:', { caracterizacion_id, fieldName, fileName });
+  
   const userData = await getUserData(caracterizacion_id);
   
   const documentCode = DOCUMENT_CODES[fieldName];
+  console.log('📄 Código de documento:', documentCode);
   
   if (!documentCode) {
+    console.log('❌ Código de documento no definido para:', fieldName);
     throw new Error(`Código de documento no definido para el campo: ${fieldName}`);
   }
   
   // Extraer la extensión del archivo original
   const fileExtension = fileName.split('.').pop();
+  console.log('📄 Extensión del archivo:', fileExtension);
   
   const basePath = `${userData.cedula}_${userData.nombre}`;
   const folderPath = `2. Soportes de Visita 1_${userData.grupo}`;
@@ -95,6 +110,7 @@ async function generateVisita1Path(caracterizacion_id, fieldName, fileName) {
   
   const finalPath = `${basePath}/${folderPath}/${filePath}`;
   
+  console.log('✅ [generateVisita1Path] Ruta final generada:', finalPath);
   return finalPath;
 }
 

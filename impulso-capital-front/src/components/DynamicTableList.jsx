@@ -22,6 +22,7 @@ export default function DynamicTableList() {
   const [localidades, setLocalidades] = useState([]);
   const [estados, setEstados] = useState([]);
   const [users, setUsers] = useState([]);
+  const [grupos, setGrupos] = useState([]);
 
   const navigate = useNavigate();
 
@@ -36,6 +37,7 @@ export default function DynamicTableList() {
   const [estadoFilter, setEstadoFilter] = useState('');
   const [asesorFilter, setAsesorFilter] = useState('');
   const [asignacionFilter, setAsignacionFilter] = useState('');
+  const [grupoFilter, setGrupoFilter] = useState('');
 
   // Columnas fijas para Empresas
   const fixedColumns = [
@@ -131,6 +133,11 @@ export default function DynamicTableList() {
 
       setRelatedData(relatedDataResponse.data.relatedData || {});
       setRecords(filteredRecords);
+      
+      // Obtener grupos únicos de los registros
+      const gruposUnicos = [...new Set(filteredRecords.map(record => record["Priorizacion capitalizacion"]).filter(Boolean))].sort();
+      setGrupos(gruposUnicos);
+      
       setLoading(false);
     } catch (error) {
       console.error('Error obteniendo los registros:', error);
@@ -206,7 +213,8 @@ export default function DynamicTableList() {
     const matchesEstado = !estadoFilter || String(record.Estado) === String(estadoFilter);
     const matchesAsesor = !asesorFilter || String(record.Asesor) === String(asesorFilter);
     const matchesAsignacion = asignacionFilter === "si" ? record.Asesor : asignacionFilter === "no" ? !record.Asesor : true;
-    return matchesLocalidad && matchesEstado && matchesAsesor && matchesAsignacion;
+    const matchesGrupo = !grupoFilter || String(record["Priorizacion capitalizacion"]) === String(grupoFilter);
+    return matchesLocalidad && matchesEstado && matchesAsesor && matchesAsignacion && matchesGrupo;
   })
   .sort((a, b) => Number(a.id) - Number(b.id));
 
@@ -222,7 +230,7 @@ export default function DynamicTableList() {
   // Resetear página si cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
-  }, [rowsPerPage, search, localidadFilter, estadoFilter, asesorFilter, asignacionFilter]);
+  }, [rowsPerPage, search, localidadFilter, estadoFilter, asesorFilter, asignacionFilter, grupoFilter]);
 
   // Generar array de páginas para el paginador
   const getPageNumbers = () => {
@@ -330,6 +338,18 @@ export default function DynamicTableList() {
                         <option value="">Asignación Asesor</option>
                         <option value="si">Sí</option>
                         <option value="no">No</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Filtro de Grupos en segunda fila */}
+                  <div className="row mb-3">
+                    <div className="col-sm-3">
+                      <select className="form-control" onChange={(e) => setGrupoFilter(e.target.value)}>
+                        <option value="">Todos los Grupos</option>
+                        {grupos.map((grupo) => (
+                          <option key={grupo} value={grupo}>{grupo}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

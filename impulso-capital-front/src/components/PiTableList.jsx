@@ -22,6 +22,7 @@ export default function PiTableList() {
   const [localidades, setLocalidades] = useState([]);
   const [estados, setEstados] = useState([]);
   const [users, setUsers] = useState([]);
+  const [grupos, setGrupos] = useState([]);
 
   const navigate = useNavigate();
 
@@ -129,6 +130,11 @@ export default function PiTableList() {
 
       setRelatedData(relatedDataResponse.data.relatedData || {});
       setRecords(filteredRecords);
+      
+      // Obtener grupos únicos de los registros
+      const gruposUnicos = [...new Set(filteredRecords.map(record => record["Priorizacion capitalizacion"]).filter(Boolean))].sort();
+      setGrupos(gruposUnicos);
+      
       setLoading(false);
     } catch (error) {
       console.error('Error obteniendo los registros:', error);
@@ -263,6 +269,7 @@ export default function PiTableList() {
   const [estadoFilter, setEstadoFilter] = useState('');
   const [asesorFilter, setAsesorFilter] = useState('');
   const [asignacionFilter, setAsignacionFilter] = useState('');
+  const [grupoFilter, setGrupoFilter] = useState('');
 
   // Lógica de filtrado
   const filteredRecords = displayedRecords.filter((record) => {
@@ -270,7 +277,8 @@ export default function PiTableList() {
     const matchesEstado = !estadoFilter || String(record.Estado) === String(estadoFilter);
     const matchesAsesor = !asesorFilter || String(record.Asesor) === String(asesorFilter);
     const matchesAsignacion = asignacionFilter === "si" ? record.Asesor : asignacionFilter === "no" ? !record.Asesor : true;
-    return matchesLocalidad && matchesEstado && matchesAsesor && matchesAsignacion;
+    const matchesGrupo = !grupoFilter || String(record["Priorizacion capitalizacion"]) === String(grupoFilter);
+    return matchesLocalidad && matchesEstado && matchesAsesor && matchesAsignacion && matchesGrupo;
   });
 
   // Calcular el número total de páginas
@@ -282,7 +290,7 @@ export default function PiTableList() {
   // Resetear página si cambian los filtros o la cantidad de registros por página
   useEffect(() => {
     setCurrentPage(1);
-  }, [rowsPerPage, search, localidadFilter, estadoFilter, asesorFilter, asignacionFilter]);
+  }, [rowsPerPage, search, localidadFilter, estadoFilter, asesorFilter, asignacionFilter, grupoFilter]);
 
   // Generar array de páginas para el paginador avanzado
   const getPageNumbers = () => {
@@ -391,6 +399,18 @@ export default function PiTableList() {
                         <option value="">Asignación Asesor</option>
                         <option value="si">Sí</option>
                         <option value="no">No</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Filtro de Grupos en segunda fila */}
+                  <div className="row mb-3">
+                    <div className="col-sm-3">
+                      <select className="form-control" onChange={(e) => setGrupoFilter(e.target.value)}>
+                        <option value="">Todos los Grupos</option>
+                        {grupos.map((grupo) => (
+                          <option key={grupo} value={grupo}>{grupo}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

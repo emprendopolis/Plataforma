@@ -22,7 +22,8 @@ export default function AnexosV2Tab({ id }) {
     carta_compromiso: 'Carta de compromiso',
     acta_visita_1: 'Acta de visita 1',
     plan_inversion: 'Plan de inversión',
-    evidencia_fotografica_1: 'Evidencia fotográfica 1'
+    evidencia_fotografica_1: 'Evidencia fotográfica 1',
+    acta_retiro: 'Acta de retiro'
   };
 
   const fetchData = async () => {
