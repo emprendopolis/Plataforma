@@ -40,7 +40,7 @@ export default function Content() {
                     <iframe 
                       title="IL 2024" 
                       className="embed-responsive-item" 
-                      src="https://app.powerbi.com/view?r=eyJrIjoiOWEwOWJiN2QtNjY4YS00MDA2LTliM2ItY2MxOGEwN2FlNjlkIiwidCI6IjgxNjQwZjgyLTVjNDAtNGI5Yi1hYWM2LWQzMjM4ODQ2NjcxMSIsImMiOjR9" 
+                      src="https://app.powerbi.com/view?r=eyJrIjoiYjY3MTdmMzYtMTFiNS00NGZjLWE4YmUtNGEyZGJjMGVhMTM1IiwidCI6IjgxNjQwZjgyLTVjNDAtNGI5Yi1hYWM2LWQzMjM4ODQ2NjcxMSIsImMiOjR9&pageName=bbb3d045d03b5d5ba692" 
                       frameBorder="0" 
                       allowFullScreen>
                     </iframe>

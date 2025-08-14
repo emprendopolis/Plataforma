@@ -35,9 +35,9 @@
   
   /* Dimensiones específicas para columnas */
   .col-id {
-    width: 47.5px;
-    min-width: 47.5px;
-    max-width: 47.5px;
+    width: 55px;
+    min-width: 50px;
+    max-width: 60px;
   }
   
   .col-nombre {
