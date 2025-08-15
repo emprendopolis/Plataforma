@@ -80,6 +80,47 @@ async function getUserData(caracterizacion_id) {
 }
 
 /**
+ * Función auxiliar para generar un nombre único de archivo
+ * @param {string} basePath - Ruta base del archivo
+ * @param {string} folderPath - Ruta de la carpeta
+ * @param {string} baseFileName - Nombre base del archivo (sin extensión)
+ * @param {string} fileExtension - Extensión del archivo
+ * @returns {Promise<string>} - Nombre único del archivo
+ */
+async function generateUniqueFileName(basePath, folderPath, baseFileName, fileExtension) {
+  let counter = 0;
+  let finalFileName = `${baseFileName}.${fileExtension}`;
+  
+  while (true) {
+    const testPath = `${basePath}/${folderPath}/${finalFileName}`;
+    
+    try {
+      const file = bucket.file(testPath);
+      const [exists] = await file.exists();
+      
+      if (!exists) {
+        // El archivo no existe, podemos usar este nombre
+        break;
+      }
+      
+      // El archivo existe, incrementar el contador y probar con el siguiente número
+      counter++;
+      if (counter === 1) {
+        finalFileName = `${baseFileName} (1).${fileExtension}`;
+      } else {
+        finalFileName = `${baseFileName} (${counter}).${fileExtension}`;
+      }
+    } catch (error) {
+      // Si hay un error al verificar, asumir que el archivo no existe
+      console.warn(`Error verificando existencia de archivo ${testPath}:`, error.message);
+      break;
+    }
+  }
+  
+  return finalFileName;
+}
+
+/**
  * Genera la ruta de GCS para archivos de Soportes de Visita 1
  * @param {number} caracterizacion_id - ID de caracterización
  * @param {string} fieldName - Nombre del campo en la base de datos
@@ -106,9 +147,14 @@ async function generateVisita1Path(caracterizacion_id, fieldName, fileName) {
   
   const basePath = `${userData.cedula}_${userData.nombre}`;
   const folderPath = `2. Soportes de Visita 1_${userData.grupo}`;
-  const filePath = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}.${fileExtension}`;
   
-  const finalPath = `${basePath}/${folderPath}/${filePath}`;
+  // Generar el nombre base del archivo
+  const baseFileName = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}`;
+  
+  // Generar nombre único
+  const finalFileName = await generateUniqueFileName(basePath, folderPath, baseFileName, fileExtension);
+  
+  const finalPath = `${basePath}/${folderPath}/${finalFileName}`;
   
   console.log('✅ [generateVisita1Path] Ruta final generada:', finalPath);
   return finalPath;
@@ -129,9 +175,14 @@ async function generateInicialesPath(caracterizacion_id, documentType, fileName)
   
   const basePath = `${userData.cedula}_${userData.nombre}`;
   const folderPath = `1. Documentos iniciales`;
-  const filePath = `${userData.cedula}_${userData.nombre}_${documentType}_${userData.grupo}.${fileExtension}`;
   
-  return `${basePath}/${folderPath}/${filePath}`;
+  // Generar el nombre base del archivo
+  const baseFileName = `${userData.cedula}_${userData.nombre}_${documentType}_${userData.grupo}`;
+  
+  // Generar nombre único
+  const finalFileName = await generateUniqueFileName(basePath, folderPath, baseFileName, fileExtension);
+  
+  return `${basePath}/${folderPath}/${finalFileName}`;
 }
 
 /**
@@ -151,18 +202,22 @@ async function generateCierreRutaPath(caracterizacion_id, fieldName, fileName, f
   const basePath = `${userData.cedula}_${userData.nombre}`;
   const folderPath = `3. Cierre de Ruta_${userData.grupo}/Factura y soporte de entrega`;
   
-  let filePath;
+  // Generar el nombre base del archivo
+  let baseFileName;
   if (factNumber) {
-    filePath = `${userData.cedula}_${userData.nombre}_Fact ${factNumber}_${userData.grupo}.${fileExtension}`;
+    baseFileName = `${userData.cedula}_${userData.nombre}_Fact ${factNumber}_${userData.grupo}`;
   } else {
     const documentCode = DOCUMENT_CODES[fieldName];
     if (!documentCode) {
       throw new Error(`Código de documento no definido para el campo: ${fieldName}`);
     }
-    filePath = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}.${fileExtension}`;
+    baseFileName = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}`;
   }
   
-  return `${basePath}/${folderPath}/${filePath}`;
+  // Generar nombre único
+  const finalFileName = await generateUniqueFileName(basePath, folderPath, baseFileName, fileExtension);
+  
+  return `${basePath}/${folderPath}/${finalFileName}`;
 }
 
 /**
@@ -213,9 +268,45 @@ async function getSignedUrlFromGCS(destination, expiresInSeconds = 900) {
   }
 }
 
+/**
+ * Elimina un archivo de Google Cloud Storage.
+ * @param {string} filePath - Ruta del archivo en GCS (ej: 'documentos/archivo.pdf').
+ * @returns {Promise<boolean>} - true si se eliminó correctamente, false si no.
+ */
+async function deleteFileFromGCS(filePath) {
+  try {
+    if (!filePath) {
+      return false;
+    }
+    
+    // Limpiar la ruta si contiene la URL completa del bucket
+    let destination = filePath;
+    const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
+    
+    if (destination.startsWith(bucketUrl)) {
+      destination = destination.slice(bucketUrl.length);
+    }
+    
+    const file = bucket.file(destination);
+    const [exists] = await file.exists();
+    
+    if (!exists) {
+      return false;
+    }
+    
+    await file.delete();
+    return true;
+  } catch (error) {
+    console.error('Error eliminando archivo de GCS:', error.message);
+    return false;
+  }
+}
+
 module.exports = { 
+  bucket,
   uploadFileToGCS, 
   getSignedUrlFromGCS,
+  deleteFileFromGCS,
   generateVisita1Path,
   generateInicialesPath,
   generateCierreRutaPath,

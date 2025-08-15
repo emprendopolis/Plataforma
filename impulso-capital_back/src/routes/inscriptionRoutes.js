@@ -6,6 +6,8 @@ const upload = multer({ dest: 'uploads/' });
 const { authenticateJWT, authorizePermission } = require('../middlewares/authMiddleware');
 
 
+
+
 // Ruta para crear un registro en inscription_caracterizacion sin autenticación
 router.post(
   '/inscriptions/tables/:table_name/record/public',
@@ -89,12 +91,13 @@ router.get(
 );
 
 // Ruta para eliminar un archivo asociado a un registro (requiere permiso 'manage_tables')
-router.delete(
-  '/tables/:table_name/record/:record_id/file/:file_id',
-  authenticateJWT,
-  authorizePermission('manage_tables'),
-  inscriptionController.deleteFile
-);
+// COMENTADA: Esta ruta interfiere con las rutas específicas de eliminación
+// router.delete(
+//   '/tables/:table_name/record/:record_id/file/:file_id',
+//   authenticateJWT,
+//   authorizePermission('manage_tables'),
+//   inscriptionController.deleteFile
+// );
 
 // Ruta para eliminar un archivo de GCS (requiere permiso 'manage_tables')
 router.delete(
@@ -105,12 +108,13 @@ router.delete(
 );
 
 // Ruta específica para eliminar archivos de tablas pi_ (requiere permiso 'manage_tables')
-router.delete(
-  '/pi/tables/:table_name/record/:record_id/file/:file_name',
-  authenticateJWT,
-  authorizePermission('manage_tables'),
-  inscriptionController.deleteFile
-);
+// COMENTADA: Esta ruta interfiere con deleteAnexosV2File
+// router.delete(
+//   '/pi/tables/:table_name/record/:record_id/file/:file_name',
+//   authenticateJWT,
+//   authorizePermission('manage_tables'),
+//   inscriptionController.deleteFile
+// );
 
 // Ruta para obtener URL firmada de un archivo (requiere permiso 'view_tables')
 router.get(
@@ -173,6 +177,14 @@ router.post(
   authorizePermission('manage_tables'),
   upload.single('file'),
   inscriptionController.uploadAnexosV2File
+);
+
+// Ruta específica para eliminar archivos de AnexosV2
+router.delete(
+  '/pi/tables/:table_name/record/:record_id/file/:file_name',
+  authenticateJWT,
+  authorizePermission('manage_tables'),
+  inscriptionController.deleteAnexosV2File
 );
 
 // Ruta para crear un nuevo registro en una tabla dinámica de PI
@@ -299,5 +311,7 @@ router.put(
   authorizePermission('manage_tables'),
   inscriptionController.updateInicialesFileCompliance
 );
+
+
 
 module.exports = router;

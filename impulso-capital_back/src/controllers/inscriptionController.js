@@ -3499,19 +3499,8 @@ exports.deleteInicialesFile = async (req, res) => {
     }
 
     // Eliminar el archivo de Google Cloud Storage
-    const { bucket } = require('../utils/gcs');
-    let destination = file.file_path;
-    const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
-    if (destination.startsWith(bucketUrl)) {
-      destination = destination.slice(bucketUrl.length);
-    }
-
-    try {
-      const gcsFile = bucket.file(destination);
-      await gcsFile.delete();
-    } catch (gcsError) {
-      // Continuar con la eliminación de la BD aunque falle en GCS
-    }
+    const { deleteFileFromGCS } = require('../utils/gcs');
+    await deleteFileFromGCS(file.file_path);
 
     // Eliminar el registro de la base de datos
     await File.destroy({
@@ -3683,6 +3672,122 @@ exports.uploadAnexosV2File = async (req, res) => {
     console.error('Error subiendo el archivo AnexosV2:', error);
     res.status(500).json({
       message: 'Error subiendo el archivo AnexosV2',
+      error: error.message,
+    });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// ----------------------- CONTROLADOR deleteAnexosV2File --------------------------------
+// ----------------------------------------------------------------------------------------
+
+exports.deleteAnexosV2File = async (req, res) => {
+  const { table_name, record_id, file_name } = req.params;
+  const { user_id, field_name, record_id: anexos_record_id } = req.body;
+
+  try {
+    if (!table_name || !record_id || !file_name) {
+      return res.status(400).json({
+        message: 'Faltan parámetros requeridos: table_name, record_id, file_name',
+      });
+    }
+
+    if (!field_name) {
+      return res.status(400).json({
+        message: 'El nombre del campo es requerido para eliminar archivos de AnexosV2',
+      });
+    }
+
+    // Primero, buscar en la tabla pi_anexosv2 para obtener la ruta del archivo
+    const anexosRecord = await sequelize.query(
+      `SELECT * FROM pi_anexosv2 WHERE caracterizacion_id = ?`,
+      {
+        replacements: [record_id],
+        type: sequelize.QueryTypes.SELECT
+      }
+    );
+    
+    if (!anexosRecord[0]) {
+      return res.status(404).json({ message: 'Registro no encontrado en pi_anexosv2' });
+    }
+    
+    // Obtener la ruta del archivo desde el campo específico
+    const filePath = anexosRecord[0][field_name];
+    
+    if (!filePath) {
+      return res.status(404).json({ message: 'No hay archivo asociado a este campo' });
+    }
+    
+    // Extraer el nombre del archivo de la ruta
+    const fileNameFromPath = filePath.split('/').pop();
+    
+    // Buscar el archivo en la tabla files
+    let file = await File.findOne({
+      where: {
+        record_id: record_id,
+        table_name: 'pi_anexosv2',
+        name: fileNameFromPath,
+      },
+    });
+
+    if (!file) {
+      // Intentar eliminar directamente de GCS usando la ruta de pi_anexosv2
+      const { deleteFileFromGCS } = require('../utils/gcs');
+      await deleteFileFromGCS(filePath);
+      file = null; // Continuar sin archivo en tabla files
+    }
+
+    // Eliminar el archivo de Google Cloud Storage si existe en tabla files
+    if (file) {
+      const { deleteFileFromGCS } = require('../utils/gcs');
+      await deleteFileFromGCS(file.file_path);
+
+      // Eliminar el registro de la tabla files
+      await File.destroy({
+        where: {
+          id: file.id,
+          record_id: record_id,
+          table_name: 'pi_anexosv2',
+        },
+      });
+    }
+
+    // Limpiar el campo en la tabla pi_anexosv2
+    const updateQuery = `
+      UPDATE pi_anexosv2 
+      SET "${field_name}" = NULL 
+      WHERE caracterizacion_id = ?
+    `;
+    
+    await sequelize.query(updateQuery, {
+      replacements: [record_id],
+      type: sequelize.QueryTypes.UPDATE
+    });
+
+    // Registrar en el historial
+    const finalUserId = user_id || 0;
+    const fileNameForHistory = file ? file.name : fileNameFromPath;
+    
+    await insertHistory(
+      'pi_anexosv2',
+      record_id,
+      finalUserId,
+      'delete_file',
+      'Archivo',
+      fileNameForHistory,
+      null,
+      `Se eliminó el archivo AnexosV2: ${fileNameForHistory} (Campo: ${field_name})`
+    );
+
+    res.status(200).json({ 
+      message: 'Archivo AnexosV2 eliminado correctamente',
+      deletedFile: fileNameForHistory,
+      fieldName: field_name
+    });
+  } catch (error) {
+    console.error('❌ Error eliminando el archivo AnexosV2:', error);
+    res.status(500).json({
+      message: 'Error eliminando el archivo AnexosV2',
       error: error.message,
     });
   }
