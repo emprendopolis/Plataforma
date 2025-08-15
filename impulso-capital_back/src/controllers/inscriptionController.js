@@ -3721,7 +3721,7 @@ exports.deleteAnexosV2File = async (req, res) => {
     // Extraer el nombre del archivo de la ruta
     const fileNameFromPath = filePath.split('/').pop();
     
-    // Buscar el archivo en la tabla files
+    // Buscar el archivo en la tabla files - buscar por múltiples criterios
     let file = await File.findOne({
       where: {
         record_id: record_id,
@@ -3730,19 +3730,43 @@ exports.deleteAnexosV2File = async (req, res) => {
       },
     });
 
+    // Si no encuentra por nombre exacto, buscar por ruta del archivo
     if (!file) {
-      // Intentar eliminar directamente de GCS usando la ruta de pi_anexosv2
-      const { deleteFileFromGCS } = require('../utils/gcs');
-      await deleteFileFromGCS(filePath);
-      file = null; // Continuar sin archivo en tabla files
+      file = await File.findOne({
+        where: {
+          record_id: record_id,
+          table_name: 'pi_anexosv2',
+          file_path: filePath,
+        },
+      });
     }
 
-    // Eliminar el archivo de Google Cloud Storage si existe en tabla files
-    if (file) {
-      const { deleteFileFromGCS } = require('../utils/gcs');
-      await deleteFileFromGCS(file.file_path);
+    // Si aún no encuentra, buscar por nombre que contenga el nombre del archivo
+    if (!file) {
+      file = await File.findOne({
+        where: {
+          record_id: record_id,
+          table_name: 'pi_anexosv2',
+          name: {
+            [sequelize.Op.like]: `%${fileNameFromPath}%`
+          },
+        },
+      });
+    }
 
-      // Eliminar el registro de la tabla files
+    // Eliminar el archivo de Google Cloud Storage
+    const { deleteFileFromGCS } = require('../utils/gcs');
+    
+    if (file) {
+      // Si encontramos el archivo en la tabla files, usar su ruta
+      await deleteFileFromGCS(file.file_path);
+    } else {
+      // Si no encontramos en la tabla files, usar la ruta de pi_anexosv2
+      await deleteFileFromGCS(filePath);
+    }
+
+    // Eliminar el registro de la tabla files si existe
+    if (file) {
       await File.destroy({
         where: {
           id: file.id,
