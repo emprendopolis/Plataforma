@@ -39,6 +39,12 @@ export default function DynamicRecordEdit() {
     { value: 'DA', label: 'Documento Antigüedad' }
   ];
 
+  // Función para obtener el label del tipo de documento
+  const getDocumentTypeLabel = (documentType) => {
+    const option = documentTypeOptions.find(opt => opt.value === documentType);
+    return option ? option.label : documentType;
+  };
+
   const [completionPercentage, setCompletionPercentage] = useState(0);
 
   const [showStatusModal, setShowStatusModal] = useState(false);
@@ -1080,7 +1086,7 @@ export default function DynamicRecordEdit() {
                       <div style={estadoStyle}>
                         {currentEstado?.label || 'Sin estado'}
                       </div>
-                      {role !== '3' && (
+                      {(role === '1' || role === '2') && (
                         <button
                           className="btn btn-secondary btn-sm btn-block mt-2"
                           onClick={handleOpenStatusModal}
@@ -1139,7 +1145,7 @@ export default function DynamicRecordEdit() {
                             )}
                           </div>
                         ))}
-                        {role !== '3' && (
+                        {(role === '1' || role === '2') && (
                           <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoPriorizacion(true)}>
                             Editar
                           </button>
@@ -1333,50 +1339,60 @@ export default function DynamicRecordEdit() {
                         {inicialesFiles.map(file => (
                           <li key={file.id} className="list-group-item d-flex justify-content-between align-items-center">
                             <div>
-                              <strong>{file.name}</strong>
+                              <strong style={{ fontSize: '16px', color: '#333' }}>
+                                {getDocumentTypeLabel(file.documentType)}
+                              </strong>
+                              <br />
+                              <span style={{ fontSize: '14px', color: '#666' }}>
+                                {file.name}
+                              </span>
                               <br />
                               <a
                                 href={file.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                style={{ color: '#007bff', textDecoration: 'none' }}
                               >
                                 Ver documento
                               </a>
                               <br />
-                              <span
-                                className="badge"
-                                style={{
-                                  backgroundColor:
-                                    file.cumple === true ||
-                                    file.cumple === 'true' ||
-                                    file.cumple === 1
-                                      ? 'green'
-                                      : file.cumple === false ||
-                                        file.cumple === 'false' ||
-                                        file.cumple === 0
-                                      ? 'red'
-                                      : 'gray',
-                                  color: '#fff',
-                                  padding: '5px',
-                                  borderRadius: '5px',
-                                  cursor: 'pointer',
-                                  marginTop: '5px',
-                                  display: 'inline-block',
-                                }}
-                                onClick={() =>
-                                  role !== '3' && handleOpenComplianceModal(file)
-                                }
-                              >
-                                {file.cumple === true ||
-                                file.cumple === 'true' ||
-                                file.cumple === 1
-                                  ? 'Cumple'
-                                  : file.cumple === false ||
-                                    file.cumple === 'false' ||
-                                    file.cumple === 0
-                                  ? 'No Cumple'
-                                  : 'Cumplimiento'}
-                              </span>
+                              <div style={{ marginTop: '8px' }}>
+                                <span
+                                  className="badge"
+                                  style={{
+                                    backgroundColor:
+                                      file.cumple === true ||
+                                      file.cumple === 'true' ||
+                                      file.cumple === 1
+                                        ? '#28a745'
+                                        : file.cumple === false ||
+                                          file.cumple === 'false' ||
+                                          file.cumple === 0
+                                        ? '#dc3545'
+                                        : '#6c757d',
+                                    color: '#fff',
+                                    padding: '6px 12px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    display: 'inline-block',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                  }}
+                                  onClick={() =>
+                                    role !== '3' && handleOpenComplianceModal(file)
+                                  }
+                                >
+                                  {file.cumple === true ||
+                                  file.cumple === 'true' ||
+                                  file.cumple === 1
+                                    ? 'Cumple'
+                                    : file.cumple === false ||
+                                      file.cumple === 'false' ||
+                                      file.cumple === 0
+                                    ? 'No Cumple'
+                                    : 'Cumplimiento'}
+                                </span>
+                              </div>
                               {file['descripcion cumplimiento'] && (
                                 <p style={{ marginTop: '5px' }}>
                                   <strong>Descripción:</strong>{' '}
@@ -1384,7 +1400,7 @@ export default function DynamicRecordEdit() {
                                 </p>
                               )}
                             </div>
-                            {role !== '3' && (
+                            {(role === '1' || role === '2') && (
                               <button
                                 className="btn btn-danger btn-sm"
                                 onClick={() => handleInicialesFileDelete(file.id)}
