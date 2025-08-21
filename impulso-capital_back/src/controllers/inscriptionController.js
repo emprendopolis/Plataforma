@@ -3238,6 +3238,44 @@ exports.getRecordHistory = async (req, res) => {
   }
 };
 
+// Controlador getTableHistory - Obtiene historial de todos los registros de una tabla
+exports.getTableHistory = async (req, res) => {
+  const { table_name } = req.params;
+  const { caracterizacion_id } = req.query;
+
+  try {
+    let query = `
+      SELECT rh.*, u.username
+      FROM record_history rh
+      JOIN users u ON rh.user_id = u.id
+      WHERE rh.table_name = :table_name
+    `;
+    
+    const replacements = { table_name };
+    
+    // Si se proporciona caracterizacion_id, filtrar por ese campo
+    if (caracterizacion_id) {
+      query += ` AND rh.record_data LIKE :caracterizacion_filter`;
+      replacements.caracterizacion_filter = `%"caracterizacion_id":"${caracterizacion_id}"%`;
+    }
+    
+    query += ` ORDER BY rh.created_at DESC`;
+
+    const history = await sequelize.query(query, {
+      replacements,
+      type: sequelize.QueryTypes.SELECT,
+    });
+    
+    return res.status(200).json(history);
+  } catch (error) {
+    console.error('Error obteniendo el historial de la tabla:', error);
+    return res.status(500).json({
+      message: 'Error interno del servidor al obtener el historial de la tabla.',
+      error: error.message,
+    });
+  }
+};
+
 // ----------------------------------------------------------------------------------------
 // --------------------------- CONTROLADOR uploadInicialesFile -----------------------------
 // ----------------------------------------------------------------------------------------

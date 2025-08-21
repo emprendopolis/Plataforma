@@ -14,7 +14,7 @@ const DOCUMENT_CODES = {
   // Soportes de Visita 1 (pi_anexosv2)
   'autorizacion_tratamiento_proteccion_datos': 'ATD',
   'designacion_responsable': 'Desig',
-  'carta_compromiso': 'C de C',
+  'carta_compromiso': 'C de V',
   'acta_visita_1': 'AV1',
   'plan_inversion': 'PI',
   'evidencia_fotografica_1': 'RF1',

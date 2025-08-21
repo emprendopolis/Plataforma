@@ -323,7 +323,6 @@ export default function FormulacionKitTab({ id }) {
 
   return (
     <div>
-      <h3>Formulación con Kits (Grupo 2)</h3>
       {loading ? (
         <p>Cargando datos...</p>
       ) : error ? (

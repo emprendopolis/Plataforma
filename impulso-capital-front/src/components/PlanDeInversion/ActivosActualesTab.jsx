@@ -235,6 +235,7 @@ export default function ActivosActualesTab({ id }) {
                   Guardar
                 </button>
               )}
+              {/* Botón de historial oculto temporalmente
               {records.length > 0 && (
                 <button
                   type="button"
@@ -244,6 +245,7 @@ export default function ActivosActualesTab({ id }) {
                   Ver Historial de Cambios
                 </button>
               )}
+              */}
             </div>
           </form>
 

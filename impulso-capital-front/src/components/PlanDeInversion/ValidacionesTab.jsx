@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import config from '../../config';
 
-export default function ValidacionesTab({ id }) {
+export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
   const [fields, setFields] = useState([]);
   const [data, setData] = useState({});
   const [tableName] = useState('pi_validaciones');
@@ -209,7 +209,7 @@ export default function ValidacionesTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const historyResponse = await axios.get(
-        `${config.urls.inscriptions.tables}/${tableName}/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/pi/tables/${tableName}/record/${recordId}/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const fetchedHistory = historyResponse.data.history || [];
@@ -251,13 +251,21 @@ export default function ValidacionesTab({ id }) {
         <div className="alert alert-danger">{error}</div>
       ) : (
         <div>
+          {/* Mensaje de advertencia cuando el total supera $3.000.000 */}
+          {totalInversionNumerico > 3000000 && (
+            <div className="alert alert-warning mb-3">
+              <strong>Advertencia:</strong> Los botones de aprobar están deshabilitados porque el total de inversión ($ {totalInversionNumerico.toLocaleString('es-CO')}) supera el límite de $3.000.000.
+            </div>
+          )}
+
           <div className="form-group">
             <label>Aprobación Asesor</label>
             <div>
               <button
                 className={`btn ${data['Aprobación asesor'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación asesor', true)}
-                disabled={localStorage.getItem('role_id') === '3'}
+                disabled={localStorage.getItem('role_id') === '3' || totalInversionNumerico > 3000000}
+                title={totalInversionNumerico > 3000000 ? 'No se puede aprobar: el total de inversión supera $3.000.000' : ''}
               >
                 Aprobar
               </button>
@@ -277,7 +285,8 @@ export default function ValidacionesTab({ id }) {
               <button
                 className={`btn ${data['Aprobación propaís'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación propaís', true)}
-                disabled={localStorage.getItem('role_id') === '3'}
+                disabled={localStorage.getItem('role_id') === '3' || totalInversionNumerico > 3000000}
+                title={totalInversionNumerico > 3000000 ? 'No se puede aprobar: el total de inversión supera $3.000.000' : ''}
               >
                 Aprobar
               </button>
@@ -498,5 +507,6 @@ export default function ValidacionesTab({ id }) {
 
 ValidacionesTab.propTypes = {
   id: PropTypes.string.isRequired,
+  totalInversionNumerico: PropTypes.number,
 };
 

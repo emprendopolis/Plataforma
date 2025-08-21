@@ -275,6 +275,22 @@ router.get(
   inscriptionController.getRecordHistory
 );
 
+// Ruta para obtener historial específica para PI
+router.get(
+  '/pi/tables/:table_name/record/:record_id/history',
+  authenticateJWT,
+  authorizePermission('view_tables'),
+  inscriptionController.getRecordHistory
+);
+
+// Ruta para obtener historial de todos los registros de una tabla
+router.get(
+  '/pi/tables/:table_name/history',
+  authenticateJWT,
+  authorizePermission('view_tables'),
+  inscriptionController.getTableHistory
+);
+
 // ----------------------------------------------------------------------------------------
 // RUTAS PARA DOCUMENTOS INICIALES (EMPRESAS)
 // ----------------------------------------------------------------------------------------

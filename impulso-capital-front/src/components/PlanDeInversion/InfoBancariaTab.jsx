@@ -319,7 +319,7 @@ export default function InfoBancariaTab({ id }) {
       }
 
       const response = await axios.get(
-        `${config.urls.inscriptions.base}/tables/pi_informacion_bancaria/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/pi/tables/pi_informacion_bancaria/record/${recordId}/history`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }

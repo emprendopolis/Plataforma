@@ -25,6 +25,7 @@ export default function PlanDeInversion() {
   const [activeTab, setActiveTab] = useState('Datos');
   const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [totalInversionNumerico, setTotalInversionNumerico] = useState(0);
 
   // Obtener el valor de Priorizacion capitalizacion
   useEffect(() => {
@@ -65,6 +66,11 @@ export default function PlanDeInversion() {
       setActiveTab('Datos');
     }
   }, [loading, priorizacionCapitalizacion, activeTab]);
+
+  // Función para actualizar el total de inversión
+  const updateTotalInversion = (total) => {
+    setTotalInversionNumerico(total);
+  };
 
   // Función para determinar si un tab debe mostrarse
   const shouldShowTab = (tabName) => {
@@ -319,9 +325,9 @@ export default function PlanDeInversion() {
             {activeTab === 'ActivosActuales' && <ActivosActualesTab id={id} />}
             {/* {activeTab === 'Diagnostico' && <DiagnosticoTab id={id} />} */}
             {/* {activeTab === 'Capacitacion' && <CapacitacionTab id={id} />} */}
-            {activeTab === 'Validaciones' && <ValidacionesTab id={id} />}
+            {activeTab === 'Validaciones' && <ValidacionesTab id={id} totalInversionNumerico={totalInversionNumerico} />}
             {/* {activeTab === 'Formulacion' && <FormulacionTab id={id} />} */}
-            {activeTab === 'FormulacionProv' && shouldShowTab('FormulacionProv') && <FormulacionProvTab id={id} />}
+            {activeTab === 'FormulacionProv' && shouldShowTab('FormulacionProv') && <FormulacionProvTab id={id} updateTotalInversion={updateTotalInversion} />}
             {activeTab === 'FormulacionKit' && shouldShowTab('FormulacionKit') && <FormulacionKitTab id={id} />}
             {activeTab === 'InfoBancaria' && <InfoBancariaTab id={id} />}
             {/* {activeTab === 'Anexos' && <AnexosTab id={id} />} */}

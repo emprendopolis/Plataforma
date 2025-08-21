@@ -19,7 +19,7 @@ export default function AnexosV2Tab({ id }) {
   const documentNames = {
     autorizacion_tratamiento_proteccion_datos: 'Autorización tratamiento y protección de datos personales',
     designacion_responsable: 'Designación responsable',
-    carta_compromiso: 'Carta de compromiso',
+    carta_compromiso: 'Carta de vinculación',
     acta_visita_1: 'Acta de visita 1',
     plan_inversion: 'Plan de inversión',
     evidencia_fotografica_1: 'Evidencia fotográfica 1',

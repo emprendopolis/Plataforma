@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import config from '../../config';
 
-export default function FormulacionProvTab({ id }) {
+export default function FormulacionProvTab({ id, updateTotalInversion }) {
   const [fields, setFields] = useState([]);
   const [records, setRecords] = useState([]);
   const [rubros, setRubros] = useState([]);
@@ -291,7 +291,18 @@ export default function FormulacionProvTab({ id }) {
 
           if (!freeOrder) {
             console.log("Ya hay 3 productos seleccionados. No se puede seleccionar otro.");
-            // Revertimos el checkbox en interfaz, sin actualizar en BD.
+            // Revertimos el checkbox en interfaz
+            setPiFormulacionRecords(prevRecords => {
+              return prevRecords.map(prevRecord => {
+                if (String(prevRecord.rel_id_prov) === String(record.id)) {
+                  return {
+                    ...prevRecord,
+                    "Seleccion": false
+                  };
+                }
+                return prevRecord;
+              });
+            });
             return;
           }
           recordData.selectionorder = freeOrder;
@@ -304,34 +315,40 @@ export default function FormulacionProvTab({ id }) {
 
       console.log('Enviando recordData:', recordData);
 
+      let updatedRecord;
+      
       if (existingPiData.id) {
         await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        updatedRecord = { ...existingPiData, ...recordData };
       } else {
         console.log('Enviando recordData (POST):', recordData);
         const res = await axios.post(endpoint, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        recordData.id = res.data.id;
+        updatedRecord = { ...recordData, id: res.data.id };
       }
 
-      // Solo actualizar el estado local si no es un checkbox (para evitar doble actualización)
-      if (field !== "pre-Seleccion" && field !== "Seleccion") {
-        setPiFormulacionRecords(prevRecords => {
-          return prevRecords.map(prevRecord => {
-            if (String(prevRecord.rel_id_prov) === String(record.id)) {
-              return {
-                ...prevRecord,
-                [field]: value,
-                ...(field === "Seleccion" && value === true ? { selectionorder: recordData.selectionorder } : {}),
-                ...(field === "Seleccion" && value === false ? { selectionorder: null } : {})
-              };
-            }
-            return prevRecord;
-          });
-        });
-      }
+      // Actualizar el estado local con el registro completo actualizado
+      setPiFormulacionRecords(prevRecords => {
+        const existingIndex = prevRecords.findIndex(
+          prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+        );
+        
+        if (existingIndex !== -1) {
+          // Actualizar registro existente
+          const newRecords = [...prevRecords];
+          newRecords[existingIndex] = {
+            ...newRecords[existingIndex],
+            ...updatedRecord
+          };
+          return newRecords;
+        } else {
+          // Agregar nuevo registro
+          return [...prevRecords, updatedRecord];
+        }
+      });
     } catch (error) {
       console.error('Error al cambiar la aprobación:', error);
     }
@@ -364,19 +381,33 @@ export default function FormulacionProvTab({ id }) {
     }));
   }, [piFormulacionRecords, rubros]);
 
-  const totalInversion = groupedRubros
-    .reduce((acc, record) => acc + parseFloat(record.total || 0), 0)
-    .toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+  const totalInversionNumerico = useMemo(() => {
+    return groupedRubros
+      .reduce((acc, record) => acc + parseFloat(record.total || 0), 0);
+  }, [groupedRubros]);
 
-  const selectedRecords = piFormulacionRecords
-    .filter((piRecord) => piRecord["Seleccion"]);
+  // Actualizar el total de inversión en el componente padre
+  useEffect(() => {
+    if (updateTotalInversion) {
+      updateTotalInversion(totalInversionNumerico);
+    }
+  }, [totalInversionNumerico, updateTotalInversion]);
 
-  // Ordenar los seleccionados por selectionorder
-  selectedRecords.sort((a, b) => {
-    const orderA = a.selectionorder || Infinity;
-    const orderB = b.selectionorder || Infinity;
-    return orderA - orderB;
-  });
+  const totalInversion = useMemo(() => {
+    return totalInversionNumerico
+      .toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+  }, [totalInversionNumerico]);
+
+  const selectedRecords = useMemo(() => {
+    const filtered = piFormulacionRecords.filter((piRecord) => piRecord["Seleccion"]);
+    
+    // Ordenar los seleccionados por selectionorder
+    return filtered.sort((a, b) => {
+      const orderA = a.selectionorder || Infinity;
+      const orderB = b.selectionorder || Infinity;
+      return orderA - orderB;
+    });
+  }, [piFormulacionRecords]);
 
   const filteredRecords = useMemo(() => {
     let filtered = records;
@@ -532,22 +563,58 @@ export default function FormulacionProvTab({ id }) {
                         <input
                           type="checkbox"
                           checked={piData["pre-Seleccion"] || false}
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const newValue = e.target.checked;
+                            
                             // Actualizar inmediatamente el estado local
                             setPiFormulacionRecords(prevRecords => {
-                              return prevRecords.map(prevRecord => {
-                                if (String(prevRecord.rel_id_prov) === String(record.id)) {
-                                  return {
-                                    ...prevRecord,
-                                    "pre-Seleccion": newValue
-                                  };
-                                }
-                                return prevRecord;
-                              });
+                              const existingIndex = prevRecords.findIndex(
+                                prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                              );
+                              
+                              if (existingIndex !== -1) {
+                                const newRecords = [...prevRecords];
+                                newRecords[existingIndex] = {
+                                  ...newRecords[existingIndex],
+                                  "pre-Seleccion": newValue
+                                };
+                                return newRecords;
+                              } else {
+                                // Si no existe, crear un nuevo registro con providerData
+                                const newRecord = {
+                                  rel_id_prov: record.id,
+                                  caracterizacion_id: id,
+                                  "pre-Seleccion": newValue,
+                                  Cantidad: 1,
+                                  user_id: localStorage.getItem('id'),
+                                  providerData: record // Incluir los datos del proveedor
+                                };
+                                return [...prevRecords, newRecord];
+                              }
                             });
+                            
                             // Luego hacer la llamada al servidor
-                            handleApprovalChange(record, "pre-Seleccion", newValue);
+                            try {
+                              await handleApprovalChange(record, "pre-Seleccion", newValue);
+                            } catch (error) {
+                              console.error('Error al actualizar pre-selección:', error);
+                              // Si hay error, revertir el estado local
+                              setPiFormulacionRecords(prevRecords => {
+                                const existingIndex = prevRecords.findIndex(
+                                  prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                                );
+                                
+                                if (existingIndex !== -1) {
+                                  const newRecords = [...prevRecords];
+                                  newRecords[existingIndex] = {
+                                    ...newRecords[existingIndex],
+                                    "pre-Seleccion": !newValue
+                                  };
+                                  return newRecords;
+                                }
+                                return prevRecords;
+                              });
+                            }
                           }}
                           disabled={isRole3}
                         />
@@ -556,24 +623,84 @@ export default function FormulacionProvTab({ id }) {
                         <input
                           type="checkbox"
                           checked={piData["Seleccion"] || false}
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const newValue = e.target.checked;
+                            
+                            // Calcular el selectionorder si se está seleccionando
+                            let selectionorder = null;
+                            if (newValue === true) {
+                              // Ver cuántos productos ya están seleccionados:
+                              const currentlySelected = piFormulacionRecords.filter(r => r.Seleccion);
+                              const occupiedOrders = currentlySelected
+                                .map(r => r.selectionorder)
+                                .filter(o => o !== null && o !== undefined);
+
+                              // Espacios disponibles son 1,2,3
+                              const possibleOrders = [1, 2, 3];
+                              const freeOrder = possibleOrders.find(order => !occupiedOrders.includes(order));
+                              
+                              if (!freeOrder) {
+                                console.log("Ya hay 3 productos seleccionados. No se puede seleccionar otro.");
+                                return; // No hacer nada si no hay espacio
+                              }
+                              selectionorder = freeOrder;
+                            } else {
+                              // Si se está deseleccionando, liberar el selectionorder
+                              selectionorder = null;
+                            }
+                            
                             // Actualizar inmediatamente el estado local
                             setPiFormulacionRecords(prevRecords => {
-                              return prevRecords.map(prevRecord => {
-                                if (String(prevRecord.rel_id_prov) === String(record.id)) {
-                                  return {
-                                    ...prevRecord,
-                                    "Seleccion": newValue,
-                                    ...(newValue === true ? { selectionorder: null } : {}),
-                                    ...(newValue === false ? { selectionorder: null } : {})
-                                  };
-                                }
-                                return prevRecord;
-                              });
+                              const existingIndex = prevRecords.findIndex(
+                                prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                              );
+                              
+                              if (existingIndex !== -1) {
+                                const newRecords = [...prevRecords];
+                                newRecords[existingIndex] = {
+                                  ...newRecords[existingIndex],
+                                  "Seleccion": newValue,
+                                  selectionorder: selectionorder
+                                };
+                                return newRecords;
+                              } else {
+                                // Si no existe, crear un nuevo registro con providerData
+                                const newRecord = {
+                                  rel_id_prov: record.id,
+                                  caracterizacion_id: id,
+                                  "Seleccion": newValue,
+                                  Cantidad: 1,
+                                  user_id: localStorage.getItem('id'),
+                                  selectionorder: selectionorder,
+                                  providerData: record // Incluir los datos del proveedor
+                                };
+                                return [...prevRecords, newRecord];
+                              }
                             });
+                            
                             // Luego hacer la llamada al servidor
-                            handleApprovalChange(record, "Seleccion", newValue);
+                            try {
+                              await handleApprovalChange(record, "Seleccion", newValue);
+                            } catch (error) {
+                              console.error('Error al actualizar selección:', error);
+                              // Si hay error, revertir el estado local
+                              setPiFormulacionRecords(prevRecords => {
+                                const existingIndex = prevRecords.findIndex(
+                                  prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                                );
+                                
+                                if (existingIndex !== -1) {
+                                  const newRecords = [...prevRecords];
+                                  newRecords[existingIndex] = {
+                                    ...newRecords[existingIndex],
+                                    "Seleccion": !newValue,
+                                    selectionorder: null
+                                  };
+                                  return newRecords;
+                                }
+                                return prevRecords;
+                              });
+                            }
                           }}
                           disabled={isRole3}
                         />
@@ -626,7 +753,9 @@ export default function FormulacionProvTab({ id }) {
                 <tbody>
                   {selectedRecords.map((piRecord) => {
                     const provider = piRecord.providerData;
-                    if (!provider) return null;
+                    if (!provider) {
+                      return null;
+                    }
 
                     const cantidad = parseFloat(piRecord.Cantidad) || 1;
                     const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
@@ -702,6 +831,15 @@ export default function FormulacionProvTab({ id }) {
             )}
           </div>
 
+          {/* Validación del total de inversión */}
+          {totalInversionNumerico > 3000000 && (
+            <div className="mt-3">
+              <p style={{ color: 'red', fontWeight: 'bold', fontSize: '16px' }}>
+                Los bienes seleccionados deben sumar una totalidad menor a $ 3.000.000
+              </p>
+            </div>
+          )}
+
           <div className="mt-4">
             <h5>Resumen de la Inversión</h5>
             {groupedRubros.length > 0 ? (
@@ -730,10 +868,10 @@ export default function FormulacionProvTab({ id }) {
                     <td style={{ color: 'red', fontWeight: 'bold' }}>
                       {priorizacionCapitalizacion === null || priorizacionCapitalizacion === undefined || priorizacionCapitalizacion === ''
                         ? 'Sin asignación de priorización'
-                        : priorizacionCapitalizacion === 'Víctima del conflicto armado'
-                        ? '$ 900.000'
-                        : priorizacionCapitalizacion === 'MyPyme/Emprendimiento'
+                        : priorizacionCapitalizacion === 'Grupo 2'
                         ? '$ 3.000.000'
+                        : priorizacionCapitalizacion === 'Grupo 1'
+                        ? 'Entrega de Kit'
                         : 'Sin asignación de priorización'}
                     </td>
                   </tr>
@@ -751,4 +889,5 @@ export default function FormulacionProvTab({ id }) {
 
 FormulacionProvTab.propTypes = {
   id: PropTypes.string.isRequired,
+  updateTotalInversion: PropTypes.func,
 }; 

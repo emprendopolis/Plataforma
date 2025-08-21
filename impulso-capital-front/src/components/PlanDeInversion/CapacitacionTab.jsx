@@ -143,7 +143,7 @@ export default function CapacitacionTab({ id }) {
     try {
       const token = localStorage.getItem("token");
       const historyResponse = await axios.get(
-        `${config.urls.inscriptions.base}/tables/pi_capacitacion/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/pi/tables/pi_capacitacion/record/${recordId}/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setHistory(historyResponse.data.history || []);
