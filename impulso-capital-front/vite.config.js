@@ -21,7 +21,7 @@ export default defineConfig(({ command, mode }) => {
       // Configuraciones adicionales para el build de producción
       outDir: 'dist',
       sourcemap: false,
-      minify: 'terser',
+      minify: 'esbuild', // Cambiado de 'terser' a 'esbuild' (incluido por defecto)
       rollupOptions: {
         output: {
           manualChunks: {
