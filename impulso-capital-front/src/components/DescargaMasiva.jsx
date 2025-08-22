@@ -24,6 +24,14 @@ export default function DescargaMasiva() {
     // Obtener la URL base de la API (desarrollo vs producción)
     const baseURL = import.meta.env.VITE_API_URL || '';
     
+    // Log temporal para debugging en producción
+    console.log('🔍 Debug - Variables de entorno:', {
+      VITE_API_URL: import.meta.env.VITE_API_URL,
+      baseURL: baseURL,
+      NODE_ENV: import.meta.env.NODE_ENV,
+      MODE: import.meta.env.MODE
+    });
+    
     for (const cedula of cedulas) {
       try {
         // Mostrar indicador de descarga
