@@ -2,29 +2,34 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // ====================
-// PROXY SOLO PARA DESARROLLO LOCAL
-// Descomenta el bloque de abajo SOLO si trabajas en local y necesitas redirigir /api al backend local.
-// En producción, déjalo comentado o elimínalo.
+// CONFIGURACIÓN INTELIGENTE:
+// - En desarrollo: usa proxy para /api -> localhost:4000
+// - En producción: las llamadas /api van directamente al servidor de producción
 // ====================
 
-/*
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: {
-       '/api': 'http://localhost:4000' // SOLO USAR EN LOCAL. Para producción, no es necesario.
+export default defineConfig(({ command, mode }) => {
+  const isDevelopment = command === 'serve' && mode === 'development'
+  
+  return {
+    plugins: [react()],
+    server: isDevelopment ? {
+      proxy: {
+        '/api': 'http://localhost:4000'
+      }
+    } : undefined,
+    build: {
+      // Configuraciones adicionales para el build de producción
+      outDir: 'dist',
+      sourcemap: false,
+      minify: 'terser',
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            utils: ['axios']
+          }
+        }
+      }
     }
   }
-})
-*/
-
-// ====================
-// CONFIGURACIÓN PARA PRODUCCIÓN:
-// - Usa este bloque para el build y despliegue en Netlify, Vercel, etc.
-// - El bloque de proxy arriba no afecta el build si está comentado.
-// ====================
-
-
-export default defineConfig({
-  plugins: [react()]
 })
