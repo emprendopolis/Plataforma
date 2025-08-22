@@ -1,0 +1,226 @@
+/* Estilos para FormulacionKitTab */
+
+/* Estilos generales para texto formateado */
+.formatted-text-cell {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  vertical-align: top !important;
+  padding: 8px !important;
+}
+
+.formatted-text-cell .text-line {
+  margin-bottom: 4px !important;
+  line-height: 1.4 !important;
+}
+
+.formatted-text-cell .bullet-point {
+  margin-right: 8px !important;
+  color: #666 !important;
+  font-weight: bold !important;
+}
+
+.formatted-text-cell .empty-line {
+  height: 4px !important;
+}
+
+/* Configuración general de tablas */
+.tabla-moderna {
+  table-layout: fixed !important;
+  width: 100% !important;
+}
+
+.tabla-moderna td {
+  vertical-align: top !important;
+}
+
+/* ======================================== */
+/* TABLA PRINCIPAL (PRIMERA TABLA) */
+/* ======================================== */
+
+/* Código Kit - Tabla Principal */
+.tabla-moderna:first-of-type th:nth-child(1), /* Encabezado */
+.tabla-moderna:first-of-type td:nth-child(1) { /* Contenido */
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Descripción por bien - Tabla Principal */
+.tabla-moderna:first-of-type th:nth-child(2), /* Encabezado */
+.tabla-moderna:first-of-type td:nth-child(2) { /* Contenido */
+  width: 600px !important;
+  min-width: 600px !important;
+  max-width: 600px !important;
+  box-sizing: border-box !important;
+}
+
+.tabla-moderna:first-of-type th:nth-child(2) { /* Solo encabezado centrado */
+  text-align: center !important;
+}
+
+.tabla-moderna:first-of-type td:nth-child(2) { /* Solo contenido alineado a la izquierda */
+  text-align: left !important;
+}
+
+/* Precio - Tabla Principal */
+.tabla-moderna:first-of-type th:nth-child(3), /* Encabezado */
+.tabla-moderna:first-of-type td:nth-child(3) { /* Contenido */
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Cantidad - Tabla Principal */
+.tabla-moderna:first-of-type th:nth-child(4), /* Encabezado */
+.tabla-moderna:first-of-type td:nth-child(4) { /* Contenido */
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Pre-selección - Tabla Principal */
+.tabla-moderna:first-of-type th:nth-child(5), /* Encabezado */
+.tabla-moderna:first-of-type td:nth-child(5) { /* Contenido */
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Selección - Tabla Principal */
+.tabla-moderna:first-of-type th:nth-child(6), /* Encabezado */
+.tabla-moderna:first-of-type td:nth-child(6) { /* Contenido */
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* ======================================== */
+/* TABLA PRODUCTOS SELECCIONADOS (SEGUNDA TABLA) */
+/* ======================================== */
+
+/* Prioridad - Tabla Productos Seleccionados */
+.tabla-moderna:last-of-type th:nth-child(1), /* Encabezado */
+.tabla-moderna:last-of-type td:nth-child(1) { /* Contenido */
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Código Kit - Tabla Productos Seleccionados */
+.tabla-moderna:last-of-type th:nth-child(2), /* Encabezado */
+.tabla-moderna:last-of-type td:nth-child(2) { /* Contenido */
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Descripción por bien - Tabla Productos Seleccionados */
+.tabla-moderna:last-of-type th:nth-child(3), /* Encabezado */
+.tabla-moderna:last-of-type td:nth-child(3) { /* Contenido */
+  width: 600px !important;
+  min-width: 600px !important;
+  max-width: 600px !important;
+  box-sizing: border-box !important;
+}
+
+.tabla-moderna:last-of-type th:nth-child(3) { /* Solo encabezado centrado */
+  text-align: center !important;
+}
+
+.tabla-moderna:last-of-type td:nth-child(3) { /* Solo contenido alineado a la izquierda */
+  text-align: left !important;
+}
+
+/* Cantidad - Tabla Productos Seleccionados */
+.tabla-moderna:last-of-type th:nth-child(4), /* Encabezado */
+.tabla-moderna:last-of-type td:nth-child(4) { /* Contenido */
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Precio - Tabla Productos Seleccionados */
+.tabla-moderna:last-of-type th:nth-child(5), /* Encabezado */
+.tabla-moderna:last-of-type td:nth-child(5) { /* Contenido */
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Descripción dimensiones - Tabla Productos Seleccionados */
+.tabla-moderna:last-of-type th:nth-child(6), /* Encabezado */
+.tabla-moderna:last-of-type td:nth-child(6) { /* Contenido */
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Justificación - Tabla Productos Seleccionados */
+.tabla-moderna:last-of-type th:nth-child(7), /* Encabezado */
+.tabla-moderna:last-of-type td:nth-child(7) { /* Contenido */
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  text-align: center !important;
+  box-sizing: border-box !important;
+}
+
+/* ======================================== */
+/* SOBRESCRIBIR CLASES ESPECÍFICAS DE PlanDeInversion.css */
+/* ======================================== */
+
+/* Sobrescribir columna-precio */
+.tabla-moderna:first-of-type .columna-precio {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+}
+
+/* Sobrescribir columna-cantidad */
+.tabla-moderna:first-of-type .columna-cantidad {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+}
+
+/* Sobrescribir columna-preseleccion y columna-seleccion */
+.tabla-moderna:first-of-type .columna-preseleccion,
+.tabla-moderna:first-of-type .columna-seleccion {
+  width: 100px !important;
+  min-width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+}
+
+/* Estilos adicionales para forzar la aplicación */
+* {
+  box-sizing: border-box !important;
+}
+
+/* Override cualquier estilo que pueda estar interfiriendo */
+.tabla-moderna th,
+.tabla-moderna td {
+  box-sizing: border-box !important;
+}

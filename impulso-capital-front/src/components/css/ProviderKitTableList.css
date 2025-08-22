@@ -1,0 +1,35 @@
+/* Estilos para ProviderKitTableList */
+.formatted-text-cell {
+  max-width: 300px;
+  min-width: 200px;
+  white-space: normal;
+  word-wrap: break-word;
+  vertical-align: top;
+  padding: 8px;
+}
+
+.formatted-text-cell .text-line {
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.formatted-text-cell .bullet-point {
+  margin-right: 8px;
+  color: #666;
+  font-weight: bold;
+}
+
+.formatted-text-cell .empty-line {
+  height: 4px;
+}
+
+/* Estilos para las tablas */
+.table td {
+  vertical-align: top;
+}
+
+/* Asegurar que las celdas con texto formateado tengan suficiente espacio */
+.table td:nth-child(2) {
+  max-width: 350px;
+  min-width: 250px;
+}

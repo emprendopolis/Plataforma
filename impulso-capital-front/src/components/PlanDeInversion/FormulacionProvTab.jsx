@@ -482,31 +482,32 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
             />
           </div>
 
-          <table className="table tabla-moderna mt-3">
-            <thead>
-              <tr>
-                {fields.map((field) => (
-                  <th
-                    key={field.column_name}
-                    className={
-                      field.column_name === 'Precio'
-                        ? 'columna-precio'
-                        : field.column_name === 'Rubro'
-                        ? 'columna-rubro'
-                        : field.column_name === 'Elemento'
-                        ? 'columna-elemento'
-                        : ''
-                    }
-                  >
-                    {field.column_name.replace('_', ' ')}
-                  </th>
-                ))}
-                <th className="text-center columna-cantidad">Cantidad</th>
-                <th className="text-center columna-preseleccion">Pre-selección</th>
-                <th className="text-center columna-seleccion">Selección</th>
-                {/* <th>Aprobación Comité</th> */}
-              </tr>
-            </thead>
+                      <table className="table tabla-moderna mt-3" style={{ tableLayout: 'fixed', width: '100%' }}>
+              <thead>
+                <tr>
+                  {fields.map((field) => (
+                    <th
+                      key={field.column_name}
+                      style={{
+                        width: field.column_name === 'Precio' ? '120px' : 
+                               field.column_name === 'Rubro' ? '100px' : 
+                               field.column_name === 'Elemento' ? '120px' : 
+                               field.column_name === 'Nombre proveedor' ? '200px' : 
+                               field.column_name === 'Descripcion corta' ? '300px' : 
+                               field.column_name === 'Valor catalogo' ? '150px' : 
+                               field.column_name === 'Puntuacion evaluacion' ? '120px' : 'auto',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {field.column_name.replace('_', ' ')}
+                    </th>
+                  ))}
+                  <th style={{ width: '100px', textAlign: 'center' }}>Cantidad</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Pre-selección</th>
+                  <th style={{ width: '120px', textAlign: 'center' }}>Selección</th>
+                  {/* <th>Aprobación Comité</th> */}
+                </tr>
+              </thead>
             <tbody>
               {filteredRecords.length > 0 ? (
                 filteredRecords.map((record) => {
@@ -517,15 +518,16 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                       {fields.map((field) => (
                         <td
                           key={field.column_name}
-                          className={
-                            field.column_name === 'Precio'
-                              ? 'columna-precio'
-                              : field.column_name === 'Rubro'
-                              ? 'columna-rubro'
-                              : field.column_name === 'Elemento'
-                              ? 'columna-elemento'
-                              : ''
-                          }
+                          style={{
+                            width: field.column_name === 'Precio' ? '120px' : 
+                                   field.column_name === 'Rubro' ? '100px' : 
+                                   field.column_name === 'Elemento' ? '120px' : 
+                                   field.column_name === 'Nombre proveedor' ? '200px' : 
+                                   field.column_name === 'Descripcion corta' ? '300px' : 
+                                   field.column_name === 'Valor catalogo' ? '150px' : 
+                                   field.column_name === 'Puntuacion evaluacion' ? '120px' : 'auto',
+                            textAlign: 'center'
+                          }}
                         >
                           {field.column_name === 'Elemento'
                             ? getElementoName(record.Elemento)
@@ -536,7 +538,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                             : record[field.column_name]}
                         </td>
                       ))}
-                      <td className="text-center columna-cantidad">
+                      <td style={{ width: '100px', textAlign: 'center' }}>
                         <input
                           type="number"
                           min="1"
@@ -559,7 +561,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                           disabled={isRole3}
                         />
                       </td>
-                      <td className="text-center columna-preseleccion">
+                      <td style={{ width: '120px', textAlign: 'center' }}>
                         <input
                           type="checkbox"
                           checked={piData["pre-Seleccion"] || false}
@@ -619,7 +621,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                           disabled={isRole3}
                         />
                       </td>
-                      <td className="text-center columna-seleccion">
+                      <td style={{ width: '120px', textAlign: 'center' }}>
                         <input
                           type="checkbox"
                           checked={piData["Seleccion"] || false}
@@ -735,18 +737,18 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
           <div className="mt-4">
             <h5>Productos Seleccionados</h5>
             {selectedRecords.length > 0 ? (
-              <table className="table tabla-moderna">
+              <table className="table tabla-moderna" style={{ tableLayout: 'fixed', width: '100%' }}>
                 <thead>
                   <tr>
-                    <th className="text-center">Prioridad</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Prioridad</th>
                     {/* <th>Nombre proveedor</th> */}
                     {/* <th>Rubro</th> */}
-                    <th>Elemento</th>
-                    <th>Descripción</th>
-                    <th className="text-center columna-cantidad">Cantidad</th>
-                    <th>Precio Proveedor</th>
-                    <th>Descripción dimensiones</th>
-                    <th>Justificación</th>
+                    <th style={{ width: '120px', textAlign: 'center' }}>Elemento</th>
+                    <th style={{ width: '200px', textAlign: 'center' }}>Descripción</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Cantidad</th>
+                    <th style={{ width: '150px', textAlign: 'center' }}>Precio Proveedor</th>
+                    <th style={{ width: '200px', textAlign: 'center' }}>Descripción dimensiones</th>
+                    <th style={{ width: '200px', textAlign: 'center' }}>Justificación</th>
                     {/* <th>Total</th> */}
                   </tr>
                 </thead>
@@ -765,14 +767,14 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
 
                     return (
                       <tr key={piRecord.rel_id_prov}>
-                        <td className="text-center">{piRecord.selectionorder || ''}</td>
+                        <td style={{ width: '80px', textAlign: 'center' }}>{piRecord.selectionorder || ''}</td>
                         {/* <td>{provider["Nombre Proveedor"]}</td> */}
                         {/* <td>{getRubroName(provider.Rubro)}</td> */}
-                        <td>{getElementoName(provider.Elemento)}</td>
-                        <td>{provider["Descripcion corta"] || ''}</td>
-                        <td className="text-center columna-cantidad">{cantidad}</td>
-                        <td>{provider["Precio"] !== undefined ? Number(provider["Precio"]).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : ''}</td>
-                        <td>
+                        <td style={{ width: '120px', textAlign: 'center' }}>{getElementoName(provider.Elemento)}</td>
+                        <td style={{ width: '200px', textAlign: 'center' }}>{provider["Descripcion corta"] || ''}</td>
+                        <td style={{ width: '100px', textAlign: 'center' }}>{cantidad}</td>
+                        <td style={{ width: '150px', textAlign: 'center' }}>{provider["Precio"] !== undefined ? Number(provider["Precio"]).toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }) : ''}</td>
+                        <td style={{ width: '200px', textAlign: 'center' }}>
                           <textarea
                             value={piRecord["Descripcion dimensiones"] || ''}
                             onChange={(e) => {
@@ -796,7 +798,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                             disabled={isRole3}
                           />
                         </td>
-                        <td>
+                        <td style={{ width: '200px', textAlign: 'center' }}>
                           <textarea
                             value={piRecord["Justificacion"] || ''}
                             onChange={(e) => {

@@ -10,6 +10,29 @@ import config from '../../config';
 // Ruta de la imagen del banner en la carpeta public
 const bannerImagePath = '/impulso-local-banner-pdf.jpeg';
 
+// Función helper para formatear texto para PDF con saltos de línea y viñetas
+const formatTextForPDF = (text) => {
+  if (!text) return '';
+  
+  // Dividir por saltos de línea
+  const lines = text.split('\n');
+  
+  return lines.map((line, index) => {
+    // Si la línea empieza con "-", convertirla en viñeta
+    if (line.trim().startsWith('-')) {
+      return `• ${line.trim().substring(1).trim()}`;
+    }
+    // Si la línea no está vacía, mostrarla normal
+    else if (line.trim()) {
+      return line.trim();
+    }
+    // Si la línea está vacía, retornar espacio
+    else {
+      return ' ';
+    }
+  }).join('\n');
+};
+
 export default function GenerarFichaKitTab({ id }) {
   // Estados para almacenar los datos obtenidos de la API
   const [caracterizacionData, setCaracterizacionData] = useState({});
@@ -652,7 +675,7 @@ export default function GenerarFichaKitTab({ id }) {
         if (!provider) return { elemento: 'Desconocido', descripcion: 'No disponible' };
         
         return {
-          elemento: provider["cantidad_bienes"] || 'Desconocido',
+          elemento: formatTextForPDF(provider["cantidad_bienes"]) || 'Desconocido',
           descripcion: provider["Descripcion corta"] || 'No disponible'
         };
       };
@@ -704,11 +727,11 @@ export default function GenerarFichaKitTab({ id }) {
           },
           margin: { left: margin, right: margin },
                      columnStyles: {
-             0: { halign: 'center', cellWidth: 70 },
-             1: { halign: 'left', cellWidth: 140 },
-             2: { halign: 'center', cellWidth: 70 },
-             3: { halign: 'left', cellWidth: 117 },
-             4: { halign: 'left', cellWidth: 117 }
+             0: { halign: 'center', cellWidth: 50 }, //Codigo Kit
+             1: { halign: 'left', cellWidth: 170 }, //Camtodad y nombre
+             2: { halign: 'center', cellWidth: 60 }, //Cantidad de KIT
+             3: { halign: 'left', cellWidth: 117 }, //Descripcion dimensiones
+             4: { halign: 'left', cellWidth: 117 } //Justificacion
            },
           didDrawPage: (data) => {
             yPosition = data.cursor.y;

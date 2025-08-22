@@ -3,8 +3,45 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './css/UsersList.css'; // Ajusta la ruta si es necesario
 import './css/DynamicTableList.css'; // Para estilos similares a PiTableList
+import './css/ProviderKitTableList.css'; // Estilos para texto formateado
 import config from '../config';
 import { FaSearch } from 'react-icons/fa';
+
+// Función helper para formatear texto con saltos de línea y viñetas
+const formatTextWithLineBreaks = (text) => {
+  if (!text) return '';
+  
+  // Dividir por saltos de línea
+  const lines = text.split('\n');
+  
+  return (
+    <div className="formatted-text-cell">
+      {lines.map((line, index) => {
+        // Si la línea empieza con "-", convertirla en viñeta
+        if (line.trim().startsWith('-')) {
+          return (
+            <div key={index} className="text-line">
+              <span className="bullet-point">•</span>
+              {line.trim().substring(1).trim()}
+            </div>
+          );
+        }
+        // Si la línea no está vacía, mostrarla normal
+        else if (line.trim()) {
+          return (
+            <div key={index} className="text-line">
+              {line.trim()}
+            </div>
+          );
+        }
+        // Si la línea está vacía, agregar un espacio
+        else {
+          return <div key={index} className="empty-line"></div>;
+        }
+      })}
+    </div>
+  );
+};
 
 export default function ProviderKitTableList() {
   // Estados y variables
@@ -334,7 +371,7 @@ export default function ProviderKitTableList() {
                                {/* Código Kit */}
                                <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'codigoKit')}</td>
                                {/* Descripción Kit con unidades */}
-                               <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'cantidad_bienes')}</td>
+                               <td style={{ verticalAlign: 'top', fontSize: 15, textAlign: 'left' }}>{formatTextWithLineBreaks(getColumnDisplayValue(record, 'cantidad_bienes'))}</td>
                                {/* Nombre Proveedor */}
                                <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'left' }}>{getColumnDisplayValue(record, 'Nombre Proveedor')}</td>
                                {/* Ejecutivo de cuenta */}

@@ -3,11 +3,55 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import config from '../../config';
 
+// Función helper para formatear texto con saltos de línea y viñetas
+const formatTextWithLineBreaks = (text) => {
+  if (!text) return '';
+  
+  // Dividir por saltos de línea
+  const lines = text.split('\n');
+  
+  return (
+    <div style={{ 
+      whiteSpace: 'normal', 
+      wordWrap: 'break-word', 
+      verticalAlign: 'top', 
+      padding: '8px',
+      width: '100%'
+    }}>
+      {lines.map((line, index) => {
+        // Si la línea empieza con "-", convertirla en viñeta
+        if (line.trim().startsWith('-')) {
+          return (
+            <div key={index} style={{ marginBottom: '4px', lineHeight: '1.4' }}>
+              <span style={{ marginRight: '8px', color: '#666', fontWeight: 'bold' }}>•</span>
+              {line.trim().substring(1).trim()}
+            </div>
+          );
+        }
+        // Si la línea no está vacía, mostrarla normal
+        else if (line.trim()) {
+          return (
+            <div key={index} style={{ marginBottom: '4px', lineHeight: '1.4' }}>
+              {line.trim()}
+            </div>
+          );
+        }
+        // Si la línea está vacía, agregar un espacio
+        else {
+          return <div key={index} style={{ height: '4px' }}></div>;
+        }
+      })}
+    </div>
+  );
+};
+
 export default function FormulacionKitTab({ id }) {
   const [fields, setFields] = useState([]);
   const [records, setRecords] = useState([]);
   const [codigosKit, setCodigosKit] = useState([]);
   const [selectedCodigoKit, setSelectedCodigoKit] = useState('');
+  const [categorias, setCategorias] = useState([]);
+  const [selectedCategoria, setSelectedCategoria] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -55,10 +99,12 @@ export default function FormulacionKitTab({ id }) {
         );
         setFields(filteredFields);
         
-        // Obtener códigos únicos de kit
+        // Obtener códigos únicos de kit y categorías
         const allRecords = recordsResponse.data;
         const uniqueCodigosKit = [...new Set(allRecords.map(record => record.codigoKit).filter(Boolean))];
+        const uniqueCategorias = [...new Set(allRecords.map(record => record.Categoria).filter(Boolean))];
         setCodigosKit(uniqueCodigosKit);
+        setCategorias(uniqueCategorias);
         setRecords(allRecords);
 
         setLoading(false);
@@ -191,6 +237,11 @@ export default function FormulacionKitTab({ id }) {
     setSearchTerm('');
   };
 
+  const handleCategoriaChange = (e) => {
+    setSelectedCategoria(e.target.value);
+    setSearchTerm('');
+  };
+
   const getPiFormulacionData = (recordId) => {
     return piFormulacionRecords.find(
       (piRecord) => String(piRecord.rel_id_prov) === String(recordId)
@@ -308,6 +359,13 @@ export default function FormulacionKitTab({ id }) {
 
   const filteredRecords = useMemo(() => {
     let filtered = records;
+    
+    // Filtrar por categoría si está seleccionada
+    if (selectedCategoria) {
+      filtered = filtered.filter(record => record.Categoria === selectedCategoria);
+    }
+    
+    // Filtrar por término de búsqueda
     if (searchTerm) {
       const lowercasedFilter = searchTerm.toLowerCase();
       filtered = filtered.filter(record => {
@@ -315,11 +373,12 @@ export default function FormulacionKitTab({ id }) {
         return cantidadBienes.toLowerCase().includes(lowercasedFilter);
       });
     }
+    
     const sortedRecords = filtered.sort(
       (a, b) => b["Calificacion"] - a["Calificacion"]
     );
     return sortedRecords; 
-  }, [records, searchTerm]);
+  }, [records, selectedCategoria, searchTerm]);
 
   return (
     <div>
@@ -347,6 +406,24 @@ export default function FormulacionKitTab({ id }) {
             </select>
           </div>
 
+          {/* Campo Categoría */}
+          <div className="form-group mt-3">
+            <label>Categoría</label>
+            <select
+              className="form-control"
+              value={selectedCategoria}
+              onChange={handleCategoriaChange}
+              disabled={isRole5 || isRole3}
+            >
+              <option value="">-- Selecciona una categoría --</option>
+              {categorias.map((categoria) => (
+                <option key={categoria} value={categoria}>
+                  {categoria}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Campo Descripción por bien */}
           <div className="form-group mt-3">
             <label>Descripción por bien</label>
@@ -360,16 +437,15 @@ export default function FormulacionKitTab({ id }) {
             />
           </div>
 
-          <table className="table tabla-moderna mt-3">
+          <table className="table tabla-moderna mt-3" style={{ tableLayout: 'fixed', width: '100%' }}>
             <thead>
               <tr>
-                <th>Código Kit</th>
-                <th>Descripción por bien</th>
-                <th>Precio</th>
-                <th>Descripción Corta</th>
-                <th className="text-center columna-cantidad">Cantidad</th>
-                <th className="text-center columna-preseleccion">Pre-selección</th>
-                <th className="text-center columna-seleccion">Selección</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Código Kit</th>
+                <th style={{ width: '400px', textAlign: 'center' }}>Descripción por bien</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Precio</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Cantidad</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Pre-selección</th>
+                <th style={{ width: '100px', textAlign: 'center' }}>Selección</th>
               </tr>
             </thead>
             <tbody>
@@ -379,13 +455,12 @@ export default function FormulacionKitTab({ id }) {
 
                   return (
                     <tr key={record.id}>
-                      <td>{record.codigoKit}</td>
-                      <td>{record.cantidad_bienes}</td>
-                      <td className="columna-precio">
+                      <td style={{ width: '100px', textAlign: 'center' }}>{record.codigoKit}</td>
+                      <td style={{ width: '300px', textAlign: 'left' }}>{formatTextWithLineBreaks(record.cantidad_bienes)}</td>
+                      <td style={{ width: '100px', textAlign: 'center' }}>
                         {record.Precio !== undefined ? `$ ${Number(record.Precio).toLocaleString('es-CO')}` : ''}
                       </td>
-                      <td>{record["Descripcion corta"] || ''}</td>
-                      <td className="text-center columna-cantidad">
+                      <td style={{ width: '100px', textAlign: 'center' }}>
                         <input
                           type="number"
                           min="1"
@@ -408,7 +483,7 @@ export default function FormulacionKitTab({ id }) {
                           disabled={isRole3}
                         />
                       </td>
-                      <td className="text-center columna-preseleccion">
+                      <td style={{ width: '100px', textAlign: 'center' }}>
                         <input
                           type="checkbox"
                           checked={piData["pre-seleccion"] || false}
@@ -420,7 +495,7 @@ export default function FormulacionKitTab({ id }) {
                           disabled={isRole3}
                         />
                       </td>
-                      <td className="text-center columna-seleccion">
+                      <td style={{ width: '100px', textAlign: 'center' }}>
                         <input
                           type="checkbox"
                           checked={piData["Seleccion"] || false}
@@ -437,7 +512,7 @@ export default function FormulacionKitTab({ id }) {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="text-center">
+                  <td colSpan={6} className="text-center">
                     No hay coincidencias.
                   </td>
                 </tr>
@@ -448,16 +523,16 @@ export default function FormulacionKitTab({ id }) {
           <div className="mt-4">
             <h5>Productos Seleccionados</h5>
             {selectedRecords.length > 0 ? (
-              <table className="table tabla-moderna">
+              <table className="table tabla-moderna" style={{ tableLayout: 'fixed', width: '100%' }}>
                 <thead>
                   <tr>
-                    <th className="text-center">Prioridad</th>
-                    <th>Código Kit</th>
-                    <th>Descripción por bien</th>
-                    <th className="text-center columna-cantidad">Cantidad</th>
-                    <th>Precio</th>
-                    <th>Descripción dimensiones</th>
-                    <th>Justificación</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Prioridad</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Código Kit</th>
+                    <th style={{ width: '300px', textAlign: 'center' }}>Descripción por bien</th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Cantidad</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Precio</th>
+                    <th style={{ width: '200px', textAlign: 'center' }}>Descripción dimensiones</th>
+                    <th style={{ width: '200px', textAlign: 'center' }}>Justificación</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -470,12 +545,12 @@ export default function FormulacionKitTab({ id }) {
 
                     return (
                       <tr key={piRecord.rel_id_prov}>
-                        <td className="text-center">{piRecord.selectionorder || ''}</td>
-                        <td>{provider.codigoKit}</td>
-                        <td>{provider.cantidad_bienes}</td>
-                        <td className="text-center columna-cantidad">{cantidad}</td>
-                        <td>{precio !== 0 ? `$ ${precio.toLocaleString('es-CO')}` : ''}</td>
-                        <td>
+                        <td style={{ width: '60px', textAlign: 'center' }}>{piRecord.selectionorder || ''}</td>
+                        <td style={{ width: '60px', textAlign: 'center' }}>{provider.codigoKit}</td>
+                        <td style={{ width: '300px', textAlign: 'left' }}>{formatTextWithLineBreaks(provider.cantidad_bienes)}</td>
+                        <td style={{ width: '90px', textAlign: 'center' }}>{cantidad}</td>
+                        <td style={{ width: '100px', textAlign: 'center' }}>{precio !== 0 ? `$ ${precio.toLocaleString('es-CO')}` : ''}</td>
+                        <td style={{ width: '200px', textAlign: 'center' }}>
                           <textarea
                             value={piRecord["Descripcion dimensiones"] || ''}
                             onChange={(e) => {
@@ -499,7 +574,7 @@ export default function FormulacionKitTab({ id }) {
                             disabled={isRole3}
                           />
                         </td>
-                        <td>
+                        <td style={{ width: '200px', textAlign: 'center' }}>
                           <textarea
                             value={piRecord["Justificacion"] || ''}
                             onChange={(e) => {
