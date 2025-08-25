@@ -9,6 +9,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
   const [rubros, setRubros] = useState([]);
   const [selectedRubro, setSelectedRubro] = useState('');
   const [elementos, setElementos] = useState([]);
+  const [filteredElementos, setFilteredElementos] = useState([]);
   const [selectedElemento, setSelectedElemento] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,6 +75,40 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
 
     fetchFieldsAndData();
   }, []);
+
+  // Filtrar elementos basándose en la categoría seleccionada
+  useEffect(() => {
+    if (selectedRubro) {
+      // Obtener los elementos únicos que pertenecen a la categoría seleccionada desde provider_proveedores
+      const fetchFilteredElementos = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          // Obtener todos los proveedores de la categoría seleccionada
+          const proveedoresUrl = `${config.urls.inscriptions.base}/tables/${tableName}/records?Rubro=${selectedRubro}`;
+          const response = await axios.get(proveedoresUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          // Extraer elementos únicos de los proveedores
+          const elementosUnicos = [...new Set(response.data.map(proveedor => proveedor.Elemento))];
+          
+          // Obtener los detalles completos de los elementos únicos
+          const elementosDetallados = elementosUnicos.map(elementoId => {
+            const elemento = elementos.find(el => String(el.id) === String(elementoId));
+            return elemento || { id: elementoId, Elemento: 'Desconocido' };
+          });
+          
+          setFilteredElementos(elementosDetallados);
+        } catch (error) {
+          console.error('Error obteniendo elementos filtrados:', error);
+          setFilteredElementos([]);
+        }
+      };
+      fetchFilteredElementos();
+    } else {
+      setFilteredElementos([]);
+    }
+  }, [selectedRubro, elementos]);
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -196,6 +231,8 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
     setSelectedRubro(e.target.value);
     setSelectedElemento('');
     setSearchTerm('');
+    // Limpiar elementos filtrados cuando se cambia la categoría
+    setFilteredElementos([]);
   };
 
   const handleElementoChange = (e) => {
@@ -204,7 +241,9 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
   };
 
   const getElementoName = (elementoId) => {
-    const elemento = elementos.find((el) => String(el.id) === String(elementoId));
+    // Buscar primero en elementos filtrados, luego en todos los elementos
+    const elemento = filteredElementos.find((el) => String(el.id) === String(elementoId)) || 
+                    elementos.find((el) => String(el.id) === String(elementoId));
     return elemento ? elemento.Elemento : 'Desconocido';
   };
 
@@ -361,9 +400,9 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
         const provider = piRecord.providerData;
         if (provider) {
           const rubroName = getRubroName(provider.Rubro);
-          const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
+          const precio = parseFloat(provider["Precio"]) || 0;
           const cantidad = parseFloat(piRecord.Cantidad) || 1;
-          const totalPrice = precioCatalogo * cantidad;
+          const totalPrice = precio * cantidad;
 
           if (rubroMap[rubroName]) {
             rubroMap[rubroName] += totalPrice;
@@ -433,16 +472,16 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
         <div className="alert alert-danger">{error}</div>
       ) : (
         <>
-          {/* 2. Deshabilitar selector de Rubro si es role 5 */}
+          {/* 2. Deshabilitar selector de Categoría si es role 5 */}
           <div className="form-group">
-            <label>Rubro</label>
+            <label>Categoría</label>
             <select
               className="form-control"
               value={selectedRubro}
               onChange={handleRubroChange}
               disabled={isRole5 || isRole3}
             >
-              <option value="">-- Selecciona un rubro --</option>
+              <option value="">-- Selecciona una categoría --</option>
               {rubros.map((rubro) => (
                 <option key={rubro.id} value={rubro.id}>
                   {rubro.Rubro}
@@ -461,7 +500,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
               disabled={!selectedRubro || isRole5 || isRole3}
             >
               <option value="">-- Selecciona un elemento --</option>
-              {elementos.map((elemento) => (
+              {filteredElementos.map((elemento) => (
                 <option key={elemento.id} value={elemento.id}>
                   {elemento.Elemento}
                 </option>
@@ -499,7 +538,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                         textAlign: 'center'
                       }}
                     >
-                      {field.column_name.replace('_', ' ')}
+                                             {field.column_name === 'Rubro' ? 'Categoría' : field.column_name.replace('_', ' ')}
                     </th>
                   ))}
                   <th style={{ width: '100px', textAlign: 'center' }}>Cantidad</th>
@@ -742,7 +781,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                   <tr>
                     <th style={{ width: '80px', textAlign: 'center' }}>Prioridad</th>
                     {/* <th>Nombre proveedor</th> */}
-                    {/* <th>Rubro</th> */}
+                    {/* <th>Categoría</th> */}
                     <th style={{ width: '120px', textAlign: 'center' }}>Elemento</th>
                     <th style={{ width: '200px', textAlign: 'center' }}>Descripción</th>
                     <th style={{ width: '100px', textAlign: 'center' }}>Cantidad</th>
@@ -848,7 +887,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
               <table className="table tabla-moderna">
                 <thead>
                   <tr>
-                    <th>Rubro</th>
+                    <th>Categoría</th>
                     <th>Valor</th>
                   </tr>
                 </thead>
