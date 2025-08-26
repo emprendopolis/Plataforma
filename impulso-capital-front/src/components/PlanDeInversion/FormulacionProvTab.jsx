@@ -33,6 +33,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
     "Nombre proveedor",
     "Rubro",
     "Elemento",
+    "Calificacion",
     "Descripcion corta",
     "Valor catalogo",
     "Precio",
@@ -457,9 +458,20 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
         return descripcionCorta.toLowerCase().includes(lowercasedFilter);
       });
     }
-    const sortedRecords = filtered.sort(
-      (a, b) => b["Puntuacion evaluacion"] - a["Puntuacion evaluacion"]
-    );
+    const sortedRecords = filtered.sort((a, b) => {
+      // Ordenar primero por calificación de mayor a menor
+      const calificacionA = parseFloat(a["Calificacion"]) || 0;
+      const calificacionB = parseFloat(b["Calificacion"]) || 0;
+      
+      if (calificacionB !== calificacionA) {
+        return calificacionB - calificacionA;
+      }
+      
+      // Si tienen la misma calificación, ordenar por puntuación de evaluación
+      const puntuacionA = parseFloat(a["Puntuacion evaluacion"]) || 0;
+      const puntuacionB = parseFloat(b["Puntuacion evaluacion"]) || 0;
+      return puntuacionB - puntuacionA;
+    });
     return sortedRecords; 
   }, [records, searchTerm]);
 
@@ -531,6 +543,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                         width: field.column_name === 'Precio' ? '120px' : 
                                field.column_name === 'Rubro' ? '100px' : 
                                field.column_name === 'Elemento' ? '120px' : 
+                               field.column_name === 'Calificacion' ? '100px' : 
                                field.column_name === 'Nombre proveedor' ? '200px' : 
                                field.column_name === 'Descripcion corta' ? '300px' : 
                                field.column_name === 'Valor catalogo' ? '150px' : 
@@ -561,6 +574,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                             width: field.column_name === 'Precio' ? '120px' : 
                                    field.column_name === 'Rubro' ? '100px' : 
                                    field.column_name === 'Elemento' ? '120px' : 
+                                   field.column_name === 'Calificacion' ? '100px' : 
                                    field.column_name === 'Nombre proveedor' ? '200px' : 
                                    field.column_name === 'Descripcion corta' ? '300px' : 
                                    field.column_name === 'Valor catalogo' ? '150px' : 

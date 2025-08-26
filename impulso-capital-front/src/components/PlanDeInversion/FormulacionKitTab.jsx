@@ -71,10 +71,10 @@ export default function FormulacionKitTab({ id }) {
   const displayedFieldNames = [
     "codigoKit",
     "cantidad_bienes",
+    "Calificacion",
     "Nombre proveedor",
     "Valor catalogo",
-    "Precio",
-    "Calificacion"
+    "Precio"
   ];
 
   useEffect(() => {
@@ -374,9 +374,12 @@ export default function FormulacionKitTab({ id }) {
       });
     }
     
-    const sortedRecords = filtered.sort(
-      (a, b) => b["Calificacion"] - a["Calificacion"]
-    );
+    const sortedRecords = filtered.sort((a, b) => {
+      // Ordenar por calificación de mayor a menor
+      const calificacionA = parseFloat(a["Calificacion"]) || 0;
+      const calificacionB = parseFloat(b["Calificacion"]) || 0;
+      return calificacionB - calificacionA;
+    });
     return sortedRecords; 
   }, [records, selectedCategoria, searchTerm]);
 
@@ -440,9 +443,24 @@ export default function FormulacionKitTab({ id }) {
           <table className="table tabla-moderna mt-3" style={{ tableLayout: 'fixed', width: '100%' }}>
             <thead>
               <tr>
-                <th style={{ width: '100px', textAlign: 'center' }}>Código Kit</th>
-                <th style={{ width: '400px', textAlign: 'center' }}>Descripción por bien</th>
-                <th style={{ width: '100px', textAlign: 'center' }}>Precio</th>
+                {fields.map((field) => (
+                  <th
+                    key={field.column_name}
+                    style={{
+                      width: field.column_name === 'codigoKit' ? '100px' : 
+                             field.column_name === 'cantidad_bienes' ? '400px' : 
+                             field.column_name === 'Calificacion' ? '100px' : 
+                             field.column_name === 'Nombre proveedor' ? '200px' : 
+                             field.column_name === 'Valor catalogo' ? '150px' : 
+                             field.column_name === 'Precio' ? '100px' : 'auto',
+                      textAlign: 'center'
+                    }}
+                  >
+                    {field.column_name === 'cantidad_bienes' ? 'Descripción por bien' : 
+                     field.column_name === 'codigoKit' ? 'Código Kit' : 
+                     field.column_name.replace('_', ' ')}
+                  </th>
+                ))}
                 <th style={{ width: '100px', textAlign: 'center' }}>Cantidad</th>
                 <th style={{ width: '100px', textAlign: 'center' }}>Pre-selección</th>
                 <th style={{ width: '100px', textAlign: 'center' }}>Selección</th>
@@ -455,11 +473,26 @@ export default function FormulacionKitTab({ id }) {
 
                   return (
                     <tr key={record.id}>
-                      <td style={{ width: '100px', textAlign: 'center' }}>{record.codigoKit}</td>
-                      <td style={{ width: '300px', textAlign: 'left' }}>{formatTextWithLineBreaks(record.cantidad_bienes)}</td>
-                      <td style={{ width: '100px', textAlign: 'center' }}>
-                        {record.Precio !== undefined ? `$ ${Number(record.Precio).toLocaleString('es-CO')}` : ''}
-                      </td>
+                      {fields.map((field) => (
+                        <td
+                          key={field.column_name}
+                          style={{
+                            width: field.column_name === 'codigoKit' ? '100px' : 
+                                   field.column_name === 'cantidad_bienes' ? '400px' : 
+                                   field.column_name === 'Calificacion' ? '100px' : 
+                                   field.column_name === 'Nombre proveedor' ? '200px' : 
+                                   field.column_name === 'Valor catalogo' ? '150px' : 
+                                   field.column_name === 'Precio' ? '100px' : 'auto',
+                            textAlign: field.column_name === 'cantidad_bienes' ? 'left' : 'center'
+                          }}
+                        >
+                          {field.column_name === 'cantidad_bienes' 
+                            ? formatTextWithLineBreaks(record[field.column_name])
+                            : field.column_name === 'Precio'
+                            ? (record[field.column_name] !== undefined ? `$ ${Number(record[field.column_name]).toLocaleString('es-CO')}` : '')
+                            : record[field.column_name]}
+                        </td>
+                      ))}
                       <td style={{ width: '100px', textAlign: 'center' }}>
                         <input
                           type="number"
@@ -512,7 +545,7 @@ export default function FormulacionKitTab({ id }) {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="text-center">
+                  <td colSpan={fields.length + 3} className="text-center">
                     No hay coincidencias.
                   </td>
                 </tr>
