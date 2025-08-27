@@ -263,19 +263,32 @@ export default function FormulacionKitTab({ id }) {
 
       const endpoint = `${config.urls.inscriptions.base}/master/tables/${piFormulacionTableName}/record`;
 
+      let updatedRecord;
+      
       if (existingPiData.id) {
         await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        updatedRecord = { ...existingPiData, ...recordData };
       } else {
         const res = await axios.post(endpoint, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        recordData.id = res.data.id;
+        updatedRecord = { ...recordData, id: res.data.id };
       }
 
-      // Recargar los datos después de crear o actualizar
-      await fetchPiFormulacionRecords();
+      // Actualizar el estado local en lugar de recargar todos los datos
+      setPiFormulacionRecords(prevRecords => {
+        return prevRecords.map(prevRecord => {
+          if (String(prevRecord.rel_id_prov) === String(recordId)) {
+            return {
+              ...prevRecord,
+              Cantidad: cantidad
+            };
+          }
+          return prevRecord;
+        });
+      });
     } catch (error) {
       console.error('Error al cambiar la cantidad:', error);
     }
@@ -288,8 +301,6 @@ export default function FormulacionKitTab({ id }) {
       const existingPiData = getPiFormulacionData(record.id);
       const cantidad = existingPiData.Cantidad || 1;
 
-
-
       const recordData = {
         caracterizacion_id: parseInt(id),
         rel_id_prov: record.id,
@@ -297,8 +308,6 @@ export default function FormulacionKitTab({ id }) {
         user_id: parseInt(userId),
         [field]: value,
       };
-
-
 
       if (field === "Seleccion") {
         if (value === true) {
@@ -325,25 +334,44 @@ export default function FormulacionKitTab({ id }) {
 
       const endpoint = `${config.urls.inscriptions.base}/master/tables/${piFormulacionTableName}/record`;
 
-
-
+      let updatedRecord;
+      
       if (existingPiData.id) {
-        const response = await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
+        await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        updatedRecord = { ...existingPiData, ...recordData };
       } else {
         const res = await axios.post(endpoint, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        recordData.id = res.data.id;
+        updatedRecord = { ...recordData, id: res.data.id };
       }
 
-      // Recargar los datos después de crear o actualizar, excepto para textareas
+      // Actualizar el estado local con el registro completo actualizado, excepto para textareas
       if (field !== "Descripcion dimensiones" && field !== "Justificacion") {
-        await fetchPiFormulacionRecords();
+        setPiFormulacionRecords(prevRecords => {
+          const existingIndex = prevRecords.findIndex(
+            prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+          );
+          
+          if (existingIndex !== -1) {
+            // Actualizar registro existente
+            const newRecords = [...prevRecords];
+            newRecords[existingIndex] = {
+              ...newRecords[existingIndex],
+              ...updatedRecord
+            };
+            return newRecords;
+          } else {
+            // Agregar nuevo registro
+            return [...prevRecords, updatedRecord];
+          }
+        });
       }
     } catch (error) {
       console.error('Error al cambiar la aprobación:', error);
+      throw error; // Re-lanzar el error para que el manejador del checkbox pueda revertir el estado
     }
   };
 
@@ -520,26 +548,161 @@ export default function FormulacionKitTab({ id }) {
                         <input
                           type="checkbox"
                           checked={piData["pre-seleccion"] || false}
-                          onChange={(e) => {
-                            const newValue = e.target.checked;
-                            // Luego hacer la llamada al servidor
-                            handleApprovalChange(record, "pre-seleccion", newValue);
-                          }}
+                                                     onChange={async (e) => {
+                             const newValue = e.target.checked;
+                             
+                             // Actualizar inmediatamente el estado local
+                             setPiFormulacionRecords(prevRecords => {
+                               const existingIndex = prevRecords.findIndex(
+                                 prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                               );
+                               
+                               if (existingIndex !== -1) {
+                                 const newRecords = [...prevRecords];
+                                 newRecords[existingIndex] = {
+                                   ...newRecords[existingIndex],
+                                   "pre-seleccion": newValue,
+                                   // Si se desmarca la pre-selección, también desmarcar la selección
+                                   "Seleccion": newValue ? newRecords[existingIndex]["Seleccion"] : false,
+                                   selectionorder: newValue ? newRecords[existingIndex]["selectionorder"] : null
+                                 };
+                                 return newRecords;
+                               } else {
+                                 // Si no existe, crear un nuevo registro con providerData
+                                 const newRecord = {
+                                   rel_id_prov: record.id,
+                                   caracterizacion_id: id,
+                                   "pre-seleccion": newValue,
+                                   "Seleccion": false, // Siempre empezar con selección en false
+                                   selectionorder: null,
+                                   Cantidad: 1,
+                                   user_id: localStorage.getItem('id'),
+                                   providerData: record // Incluir los datos del proveedor
+                                 };
+                                 return [...prevRecords, newRecord];
+                               }
+                             });
+                             
+                             // Luego hacer la llamada al servidor
+                             try {
+                               await handleApprovalChange(record, "pre-seleccion", newValue);
+                               // Si se desmarcó la pre-selección, también actualizar la selección
+                               if (!newValue) {
+                                 await handleApprovalChange(record, "Seleccion", false);
+                               }
+                             } catch (error) {
+                               console.error('Error al actualizar pre-selección:', error);
+                               // Si hay error, revertir el estado local
+                               setPiFormulacionRecords(prevRecords => {
+                                 const existingIndex = prevRecords.findIndex(
+                                   prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                                 );
+                                 
+                                 if (existingIndex !== -1) {
+                                   const newRecords = [...prevRecords];
+                                   newRecords[existingIndex] = {
+                                     ...newRecords[existingIndex],
+                                     "pre-seleccion": !newValue
+                                   };
+                                   return newRecords;
+                                 }
+                                 return prevRecords;
+                               });
+                             }
+                           }}
                           disabled={isRole3}
                         />
                       </td>
-                      <td style={{ width: '100px', textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={piData["Seleccion"] || false}
-                          onChange={(e) => {
-                            const newValue = e.target.checked;
-                            // Luego hacer la llamada al servidor
-                            handleApprovalChange(record, "Seleccion", newValue);
-                          }}
-                          disabled={isRole3}
-                        />
-                      </td>
+                                             <td style={{ width: '100px', textAlign: 'center' }}>
+                         <input
+                           type="checkbox"
+                           checked={piData["Seleccion"] || false}
+                           onChange={async (e) => {
+                             const newValue = e.target.checked;
+                             
+                             // Calcular el selectionorder si se está seleccionando
+                             let selectionorder = null;
+                             if (newValue === true) {
+                               // Ver cuántos productos ya están seleccionados:
+                               const currentlySelected = piFormulacionRecords.filter(r => r.Seleccion);
+                               const occupiedOrders = currentlySelected
+                                 .map(r => r.selectionorder)
+                                 .filter(o => o !== null && o !== undefined);
+
+                               // Espacios disponibles son 1,2,3
+                               const possibleOrders = [1, 2, 3];
+                               const freeOrder = possibleOrders.find(order => !occupiedOrders.includes(order));
+                               
+                               if (!freeOrder) {
+                                 console.log("Ya hay 3 productos seleccionados. No se puede seleccionar otro.");
+                                 return; // No hacer nada si no hay espacio
+                               }
+                               selectionorder = freeOrder;
+                             } else {
+                               // Si se está deseleccionando, liberar el selectionorder
+                               selectionorder = null;
+                             }
+                             
+                             // Actualizar inmediatamente el estado local
+                             setPiFormulacionRecords(prevRecords => {
+                               const existingIndex = prevRecords.findIndex(
+                                 prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                               );
+                               
+                               if (existingIndex !== -1) {
+                                 const newRecords = [...prevRecords];
+                                 newRecords[existingIndex] = {
+                                   ...newRecords[existingIndex],
+                                   "Seleccion": newValue,
+                                   selectionorder: selectionorder
+                                 };
+                                 return newRecords;
+                               } else {
+                                 // Si no existe, crear un nuevo registro con providerData
+                                 const newRecord = {
+                                   rel_id_prov: record.id,
+                                   caracterizacion_id: id,
+                                   "Seleccion": newValue,
+                                   Cantidad: 1,
+                                   user_id: localStorage.getItem('id'),
+                                   selectionorder: selectionorder,
+                                   providerData: record // Incluir los datos del proveedor
+                                 };
+                                 return [...prevRecords, newRecord];
+                               }
+                             });
+                             
+                             // Luego hacer la llamada al servidor
+                             try {
+                               await handleApprovalChange(record, "Seleccion", newValue);
+                             } catch (error) {
+                               console.error('Error al actualizar selección:', error);
+                               // Si hay error, revertir el estado local
+                               setPiFormulacionRecords(prevRecords => {
+                                 const existingIndex = prevRecords.findIndex(
+                                   prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                                 );
+                                 
+                                 if (existingIndex !== -1) {
+                                   const newRecords = [...prevRecords];
+                                   newRecords[existingIndex] = {
+                                     ...newRecords[existingIndex],
+                                     "Seleccion": !newValue,
+                                     selectionorder: null
+                                   };
+                                   return newRecords;
+                                 }
+                                 return prevRecords;
+                               });
+                             }
+                           }}
+                           disabled={isRole3 || !(piData["pre-seleccion"] || false)}
+                           style={{
+                             opacity: (piData["pre-seleccion"] || false) ? 1 : 0.5,
+                             cursor: (piData["pre-seleccion"] || false) ? 'pointer' : 'not-allowed'
+                           }}
+                         />
+                       </td>
                     </tr>
                   );
                 })
