@@ -1209,7 +1209,7 @@ exports.getTableRecordById = async (req, res) => {
         if (relatedTableName === 'users') {
           const relatedRecords = await RelatedTable.findAll({
             attributes: ['id', 'username'],
-            limit: 100
+            limit: 1000
           });
           relatedCache[relatedTableName] = relatedRecords.map((record) => ({
             id: record.id,
@@ -1218,7 +1218,7 @@ exports.getTableRecordById = async (req, res) => {
           relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
         } else {
           const relatedRecords = await RelatedTable.findAll({
-            limit: 100
+            limit: 1000
           });
           let displayField = relatedRecords[0] ? Object.keys(relatedRecords[0].dataValues).find((col) => col !== 'id') : 'id';
           relatedCache[relatedTableName] = relatedRecords.map((record) => ({
@@ -2786,7 +2786,7 @@ exports.getRelatedData = async (req, res) => {
         if (relatedTableName === 'users') {
           const relatedRecords = await RelatedTable.findAll({
             attributes: ['id', 'username'],
-            limit: 100
+            limit: 1000
           });
           relatedCache[relatedTableName] = relatedRecords.map((record) => ({
             id: record.id,
@@ -2795,7 +2795,7 @@ exports.getRelatedData = async (req, res) => {
           relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
         } else {
           const relatedRecords = await RelatedTable.findAll({
-            limit: 100
+            limit: 1000
           });
           let displayField = relatedRecords[0] ? Object.keys(relatedRecords[0].dataValues).find((col) => col !== 'id') : 'id';
           relatedCache[relatedTableName] = relatedRecords.map((record) => ({
