@@ -29,8 +29,8 @@ async function insertHistory(tableName, recordId, userId, changeType, fieldName,
         userId, // Se usa el parámetro userId tal como viene
         changeType,
         fieldName: fieldName || null,
-        oldValue: oldValue || null,
-        newValue: newValue || null,
+        oldValue: oldValue !== undefined ? oldValue : null,
+        newValue: newValue !== undefined ? newValue : null,
         description: description || null
       },
       type: sequelize.QueryTypes.INSERT,

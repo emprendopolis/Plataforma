@@ -336,16 +336,51 @@ export default function FormulacionKitTab({ id }) {
 
       let updatedRecord;
       
-      if (existingPiData.id) {
-        await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        updatedRecord = { ...existingPiData, ...recordData };
-      } else {
-        const res = await axios.post(endpoint, recordData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        updatedRecord = { ...recordData, id: res.data.id };
+      // Verificar si ya existe un registro con esta combinación en la base de datos
+      try {
+        // Intentar hacer PUT primero (actualizar existente)
+        if (existingPiData.id) {
+          await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          updatedRecord = { ...existingPiData, ...recordData };
+        } else {
+          // Si no tiene ID, verificar si existe en la base de datos
+          const checkExistingResponse = await axios.get(`${endpoint}?caracterizacion_id=${recordData.caracterizacion_id}&rel_id_prov=${recordData.rel_id_prov}`);
+          
+          if (checkExistingResponse.data && checkExistingResponse.data.length > 0) {
+            // Existe un registro, actualizarlo
+            const existingRecord = checkExistingResponse.data[0];
+            await axios.put(`${endpoint}/${existingRecord.id}`, recordData, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            updatedRecord = { ...existingRecord, ...recordData };
+          } else {
+            // No existe, crear nuevo
+            const res = await axios.post(endpoint, recordData, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            updatedRecord = { ...recordData, id: res.data.id };
+          }
+        }
+      } catch (error) {
+        // Si hay error de duplicado, intentar actualizar el existente
+        if (error.response && error.response.status === 500 && error.response.data.error && error.response.data.error.includes('duplicate key')) {
+          // Buscar el registro existente y actualizarlo
+          const checkExistingResponse = await axios.get(`${endpoint}?caracterizacion_id=${recordData.caracterizacion_id}&rel_id_prov=${recordData.rel_id_prov}`);
+          
+          if (checkExistingResponse.data && checkExistingResponse.data.length > 0) {
+            const existingRecord = checkExistingResponse.data[0];
+            await axios.put(`${endpoint}/${existingRecord.id}`, recordData, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            updatedRecord = { ...existingRecord, ...recordData };
+          } else {
+            throw error; // Si no se puede encontrar, re-lanzar el error
+          }
+        } else {
+          throw error; // Re-lanzar otros tipos de error
+        }
       }
 
       // Actualizar el estado local con el registro completo actualizado, excepto para textareas
@@ -356,11 +391,13 @@ export default function FormulacionKitTab({ id }) {
           );
           
           if (existingIndex !== -1) {
-            // Actualizar registro existente
+            // Actualizar registro existente, asegurando que el campo específico se mantenga
             const newRecords = [...prevRecords];
             newRecords[existingIndex] = {
               ...newRecords[existingIndex],
-              ...updatedRecord
+              ...updatedRecord,
+              // Asegurar que el campo que se acaba de actualizar mantenga su valor correcto
+              [field]: value
             };
             return newRecords;
           } else {
