@@ -59,6 +59,8 @@ export default function FormulacionKitTab({ id }) {
   // Estado local para cantidades temporales
   const [localCantidades, setLocalCantidades] = useState({});
   const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
+  // Estado específico para operaciones de pre-selección
+  const [preSelectionLoading, setPreSelectionLoading] = useState({});
 
   // 1. Obtener role_id y verificar si es '5' o '3'
   const roleId = localStorage.getItem('role_id');
@@ -151,6 +153,7 @@ export default function FormulacionKitTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const piFormulacionUrl = `${config.urls.inscriptions.base}/master/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
+      
       const response = await axios.get(piFormulacionUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -181,7 +184,7 @@ export default function FormulacionKitTab({ id }) {
           (provider) => provider && String(provider.id) === String(piRecord.rel_id_prov)
         );
         return {
-          ...piRecord,
+          ...piRecord, // Esto preserva TODOS los campos incluyendo el 'id'
           providerData: providerData || null,
         };
       });
@@ -196,6 +199,13 @@ export default function FormulacionKitTab({ id }) {
       setPiFormulacionRecords(combinedData);
     } catch (error) {
       console.error('Error obteniendo los registros de master_formulacion:', error);
+    }
+  };
+
+  // Función para refrescar los datos después de operaciones críticas
+  const refreshPiFormulacionData = async () => {
+    if (id) {
+      await fetchPiFormulacionRecords();
     }
   };
 
@@ -246,6 +256,25 @@ export default function FormulacionKitTab({ id }) {
     return piFormulacionRecords.find(
       (piRecord) => String(piRecord.rel_id_prov) === String(recordId)
     ) || {};
+  };
+
+  // Función para verificar un registro específico en la base de datos
+  const checkRecordInDatabase = async (caracterizacionId, relIdProv) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${config.urls.inscriptions.base}/master/tables/${piFormulacionTableName}/records?caracterizacion_id=${caracterizacionId}&rel_id_prov=${relIdProv}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data && response.data.length > 0) {
+        return response.data[0];
+      }
+      return null;
+    } catch (error) {
+      console.error('Error verificando registro en base de datos:', error);
+      return null;
+    }
   };
 
   const handleCantidadChange = async (recordId, cantidad) => {
@@ -301,6 +330,13 @@ export default function FormulacionKitTab({ id }) {
       const existingPiData = getPiFormulacionData(record.id);
       const cantidad = existingPiData.Cantidad || 1;
 
+      // Para Seleccion, SOLO actualizar - nunca crear
+      if (field === "Seleccion") {
+        if (!existingPiData.id) {
+          throw new Error("No se puede seleccionar sin registro previo en master_formulacion");
+        }
+      }
+
       const recordData = {
         caracterizacion_id: parseInt(id),
         rel_id_prov: record.id,
@@ -336,47 +372,70 @@ export default function FormulacionKitTab({ id }) {
 
       let updatedRecord;
       
-      // Verificar si ya existe un registro con esta combinación en la base de datos
+      // Lógica mejorada: para Seleccion solo actualizar, nunca crear
       try {
-        // Intentar hacer PUT primero (actualizar existente)
         if (existingPiData.id) {
+          // Si ya tenemos ID, actualizar directamente
           await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
             headers: { Authorization: `Bearer ${token}` },
           });
           updatedRecord = { ...existingPiData, ...recordData };
         } else {
-          // Si no tiene ID, verificar si existe en la base de datos
-          const checkExistingResponse = await axios.get(`${endpoint}?caracterizacion_id=${recordData.caracterizacion_id}&rel_id_prov=${recordData.rel_id_prov}`);
+          // Buscar si existe un registro con esta combinación en el estado local
+          const existingLocalRecord = piFormulacionRecords.find(
+            r => String(r.caracterizacion_id) === String(recordData.caracterizacion_id) && 
+                 String(r.rel_id_prov) === String(recordData.rel_id_prov)
+          );
           
-          if (checkExistingResponse.data && checkExistingResponse.data.length > 0) {
-            // Existe un registro, actualizarlo
-            const existingRecord = checkExistingResponse.data[0];
-            await axios.put(`${endpoint}/${existingRecord.id}`, recordData, {
+          if (existingLocalRecord && existingLocalRecord.id) {
+            // Existe en estado local, actualizar
+            await axios.put(`${endpoint}/${existingLocalRecord.id}`, recordData, {
               headers: { Authorization: `Bearer ${token}` },
             });
-            updatedRecord = { ...existingRecord, ...recordData };
+            updatedRecord = { ...existingLocalRecord, ...recordData };
+          } else if (field === "Seleccion") {
+            // Para Seleccion, si no existe el registro, NO crear - solo retornar
+            throw new Error("No se puede seleccionar sin registro previo en master_formulacion");
           } else {
-            // No existe, crear nuevo
+            // Para otros campos (como pre-seleccion), crear nuevo registro
             const res = await axios.post(endpoint, recordData, {
               headers: { Authorization: `Bearer ${token}` },
             });
-            updatedRecord = { ...recordData, id: res.data.id };
+            
+            // Manejar diferentes formatos de respuesta del servidor
+            let newId;
+            if (res.data && res.data.id) {
+              newId = res.data.id;
+            } else if (res.data && res.data.record && res.data.record.id) {
+              newId = res.data.record.id;
+            } else if (res.data && res.data.insertId) {
+              newId = res.data.insertId;
+            } else {
+              console.error('No se pudo obtener el ID del registro creado. Respuesta:', res.data);
+              throw new Error('No se pudo obtener el ID del registro creado');
+            }
+            
+            updatedRecord = { ...recordData, id: newId };
           }
         }
       } catch (error) {
-        // Si hay error de duplicado, intentar actualizar el existente
+        // Si hay error de duplicado, buscar en el estado local y actualizar
         if (error.response && error.response.status === 500 && error.response.data.error && error.response.data.error.includes('duplicate key')) {
-          // Buscar el registro existente y actualizarlo
-          const checkExistingResponse = await axios.get(`${endpoint}?caracterizacion_id=${recordData.caracterizacion_id}&rel_id_prov=${recordData.rel_id_prov}`);
+          // Buscar en el estado local si existe un registro con esta combinación
+          const existingLocalRecord = piFormulacionRecords.find(
+            r => String(r.caracterizacion_id) === String(recordData.caracterizacion_id) && 
+                 String(r.rel_id_prov) === String(recordData.rel_id_prov)
+          );
           
-          if (checkExistingResponse.data && checkExistingResponse.data.length > 0) {
-            const existingRecord = checkExistingResponse.data[0];
-            await axios.put(`${endpoint}/${existingRecord.id}`, recordData, {
+          if (existingLocalRecord && existingLocalRecord.id) {
+            // Actualizar el registro existente
+            await axios.put(`${endpoint}/${existingLocalRecord.id}`, recordData, {
               headers: { Authorization: `Bearer ${token}` },
             });
-            updatedRecord = { ...existingRecord, ...recordData };
+            updatedRecord = { ...existingLocalRecord, ...recordData };
           } else {
-            throw error; // Si no se puede encontrar, re-lanzar el error
+            // Si no se encuentra en estado local, re-lanzar el error
+            throw error;
           }
         } else {
           throw error; // Re-lanzar otros tipos de error
@@ -397,15 +456,27 @@ export default function FormulacionKitTab({ id }) {
               ...newRecords[existingIndex],
               ...updatedRecord,
               // Asegurar que el campo que se acaba de actualizar mantenga su valor correcto
-              [field]: value
+              [field]: value,
+              // Mantener providerData si existe
+              providerData: newRecords[existingIndex].providerData || record,
+              // Asegurar que los campos booleanos mantengan sus valores correctos
+              "pre-seleccion": field === "pre-seleccion" ? value : newRecords[existingIndex]["pre-seleccion"],
+              "Seleccion": field === "Seleccion" ? value : newRecords[existingIndex]["Seleccion"]
             };
             return newRecords;
           } else {
-            // Agregar nuevo registro
-            return [...prevRecords, updatedRecord];
+            // Agregar nuevo registro con providerData
+            const newRecordWithProvider = {
+              ...updatedRecord,
+              providerData: record
+            };
+            return [...prevRecords, newRecordWithProvider];
           }
         });
       }
+
+      // Retornar el registro actualizado para que el llamador pueda usarlo
+      return updatedRecord;
     } catch (error) {
       console.error('Error al cambiar la aprobación:', error);
       throw error; // Re-lanzar el error para que el manejador del checkbox pueda revertir el estado
@@ -585,54 +656,88 @@ export default function FormulacionKitTab({ id }) {
                         <input
                           type="checkbox"
                           checked={piData["pre-seleccion"] || false}
-                                                     onChange={async (e) => {
-                             const newValue = e.target.checked;
-                             
-                             // Actualizar inmediatamente el estado local
-                             setPiFormulacionRecords(prevRecords => {
-                               const existingIndex = prevRecords.findIndex(
-                                 prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
-                               );
-                               
-                               if (existingIndex !== -1) {
-                                 const newRecords = [...prevRecords];
-                                 newRecords[existingIndex] = {
-                                   ...newRecords[existingIndex],
-                                   "pre-seleccion": newValue,
-                                   // Si se desmarca la pre-selección, también desmarcar la selección
-                                   "Seleccion": newValue ? newRecords[existingIndex]["Seleccion"] : false,
-                                   selectionorder: newValue ? newRecords[existingIndex]["selectionorder"] : null
-                                 };
-                                 return newRecords;
-                               } else {
-                                 // Si no existe, crear un nuevo registro con providerData
-                                 const newRecord = {
-                                   rel_id_prov: record.id,
-                                   caracterizacion_id: id,
-                                   "pre-seleccion": newValue,
-                                   "Seleccion": false, // Siempre empezar con selección en false
-                                   selectionorder: null,
-                                   Cantidad: 1,
-                                   user_id: localStorage.getItem('id'),
-                                   providerData: record // Incluir los datos del proveedor
-                                 };
-                                 return [...prevRecords, newRecord];
-                               }
-                             });
-                             
-                             // Luego hacer la llamada al servidor
-                             try {
-                               await handleApprovalChange(record, "pre-seleccion", newValue);
-                               // Si se desmarcó la pre-selección, también actualizar la selección
-                               if (!newValue) {
-                                 await handleApprovalChange(record, "Seleccion", false);
+                          onChange={async (e) => {
+                            const newValue = e.target.checked;
+                            const recordId = record.id;
+                            
+                            // Evitar múltiples operaciones simultáneas en el mismo registro
+                            if (preSelectionLoading[recordId]) {
+                              return;
+                            }
+                            
+                            // Activar loading específico para este registro
+                            setPreSelectionLoading(prev => ({ ...prev, [recordId]: true }));
+                            
+                            try {
+                              // Actualizar inmediatamente el estado local para UI responsiva
+                              setPiFormulacionRecords(prevRecords => {
+                                const existingIndex = prevRecords.findIndex(
+                                  prevRecord => String(prevRecord.rel_id_prov) === String(recordId)
+                                );
+                                
+                                if (existingIndex !== -1) {
+                                  // Actualizar registro existente
+                                  const newRecords = [...prevRecords];
+                                  newRecords[existingIndex] = {
+                                    ...newRecords[existingIndex],
+                                    "pre-seleccion": newValue
+                                  };
+                                  return newRecords;
+                                } else {
+                                  // Si no existe, crear un nuevo registro con providerData
+                                  const newRecord = {
+                                    rel_id_prov: recordId,
+                                    caracterizacion_id: id,
+                                    "pre-seleccion": newValue,
+                                    "Seleccion": false, // Siempre empezar con selección en false
+                                    selectionorder: null,
+                                    Cantidad: 1,
+                                    user_id: localStorage.getItem('id'),
+                                    providerData: record // Incluir los datos del proveedor
+                                  };
+                                  return [...prevRecords, newRecord];
+                                }
+                              });
+                              
+                              // Luego hacer la llamada al servidor
+                              const updatedRecord = await handleApprovalChange(record, "pre-seleccion", newValue);
+                              
+                              // Si se desmarcó la pre-selección, también actualizar la selección
+                              if (!newValue) {
+                                await handleApprovalChange(record, "Seleccion", false);
+                              }
+                              
+                              // Si se creó un nuevo registro (no tenía ID antes), refrescar los datos
+                              if (!piData.id && updatedRecord && updatedRecord.id) {
+                                await refreshPiFormulacionData();
+                              } else {
+                                // Actualizar el estado local con el registro completo de la base de datos
+                                setPiFormulacionRecords(prevRecords => {
+                                  const existingIndex = prevRecords.findIndex(
+                                    prevRecord => String(prevRecord.rel_id_prov) === String(recordId)
+                                  );
+                                  
+                                  if (existingIndex !== -1) {
+                                    const newRecords = [...prevRecords];
+                                    // Asegurar que el registro tenga el ID correcto de la base de datos
+                                    newRecords[existingIndex] = {
+                                       ...newRecords[existingIndex],
+                                       ...updatedRecord,
+                                       "pre-seleccion": newValue,
+                                       "Seleccion": newValue ? newRecords[existingIndex]["Seleccion"] : false,
+                                       selectionorder: newValue ? newRecords[existingIndex]["selectionorder"] : null
+                                     };
+                                     return newRecords;
+                                   }
+                                   return prevRecords;
+                                 });
                                }
                              } catch (error) {
                                console.error('Error al actualizar pre-selección:', error);
                                // Si hay error, revertir el estado local
                                setPiFormulacionRecords(prevRecords => {
                                  const existingIndex = prevRecords.findIndex(
-                                   prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                                   prevRecord => String(prevRecord.rel_id_prov) === String(recordId)
                                  );
                                  
                                  if (existingIndex !== -1) {
@@ -645,99 +750,105 @@ export default function FormulacionKitTab({ id }) {
                                  }
                                  return prevRecords;
                                });
+                             } finally {
+                               // Desactivar loading específico para este registro
+                               setPreSelectionLoading(prev => ({ ...prev, [recordId]: false }));
                              }
                            }}
-                          disabled={isRole3}
+                          disabled={isRole3 || preSelectionLoading[record.id]}
+                          style={{
+                            opacity: preSelectionLoading[record.id] ? 0.6 : 1,
+                            cursor: preSelectionLoading[record.id] ? 'wait' : 'pointer'
+                          }}
                         />
+                        {preSelectionLoading[record.id] && (
+                          <small className="text-muted ml-1">⏳</small>
+                        )}
                       </td>
                                              <td style={{ width: '100px', textAlign: 'center' }}>
                          <input
                            type="checkbox"
                            checked={piData["Seleccion"] || false}
-                           onChange={async (e) => {
-                             const newValue = e.target.checked;
-                             
-                             // Calcular el selectionorder si se está seleccionando
-                             let selectionorder = null;
-                             if (newValue === true) {
-                               // Ver cuántos productos ya están seleccionados:
-                               const currentlySelected = piFormulacionRecords.filter(r => r.Seleccion);
-                               const occupiedOrders = currentlySelected
-                                 .map(r => r.selectionorder)
-                                 .filter(o => o !== null && o !== undefined);
+                                                       onChange={async (e) => {
+                              const newValue = e.target.checked;
+                              
+                              // Para Seleccion, verificar que el registro exista en master_formulacion
+                              if (!piData.id) {
+                                console.log("No se puede seleccionar sin registro previo en master_formulacion");
+                                return;
+                              }
+                              
+                              // Calcular el selectionorder si se está seleccionando
+                              let selectionorder = null;
+                              if (newValue === true) {
+                                // Ver cuántos productos ya están seleccionados:
+                                const currentlySelected = piFormulacionRecords.filter(r => r.Seleccion);
+                                const occupiedOrders = currentlySelected
+                                  .map(r => r.selectionorder)
+                                  .filter(o => o !== null && o !== undefined);
 
-                               // Espacios disponibles son 1,2,3
-                               const possibleOrders = [1, 2, 3];
-                               const freeOrder = possibleOrders.find(order => !occupiedOrders.includes(order));
-                               
-                               if (!freeOrder) {
-                                 console.log("Ya hay 3 productos seleccionados. No se puede seleccionar otro.");
-                                 return; // No hacer nada si no hay espacio
-                               }
-                               selectionorder = freeOrder;
-                             } else {
-                               // Si se está deseleccionando, liberar el selectionorder
-                               selectionorder = null;
-                             }
-                             
-                             // Actualizar inmediatamente el estado local
-                             setPiFormulacionRecords(prevRecords => {
-                               const existingIndex = prevRecords.findIndex(
-                                 prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
-                               );
-                               
-                               if (existingIndex !== -1) {
-                                 const newRecords = [...prevRecords];
-                                 newRecords[existingIndex] = {
-                                   ...newRecords[existingIndex],
-                                   "Seleccion": newValue,
-                                   selectionorder: selectionorder
-                                 };
-                                 return newRecords;
-                               } else {
-                                 // Si no existe, crear un nuevo registro con providerData
-                                 const newRecord = {
-                                   rel_id_prov: record.id,
-                                   caracterizacion_id: id,
-                                   "Seleccion": newValue,
-                                   Cantidad: 1,
-                                   user_id: localStorage.getItem('id'),
-                                   selectionorder: selectionorder,
-                                   providerData: record // Incluir los datos del proveedor
-                                 };
-                                 return [...prevRecords, newRecord];
-                               }
-                             });
-                             
-                             // Luego hacer la llamada al servidor
-                             try {
-                               await handleApprovalChange(record, "Seleccion", newValue);
-                             } catch (error) {
-                               console.error('Error al actualizar selección:', error);
-                               // Si hay error, revertir el estado local
-                               setPiFormulacionRecords(prevRecords => {
-                                 const existingIndex = prevRecords.findIndex(
-                                   prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
-                                 );
-                                 
-                                 if (existingIndex !== -1) {
-                                   const newRecords = [...prevRecords];
-                                   newRecords[existingIndex] = {
-                                     ...newRecords[existingIndex],
-                                     "Seleccion": !newValue,
-                                     selectionorder: null
-                                   };
-                                   return newRecords;
-                                 }
-                                 return prevRecords;
-                               });
-                             }
-                           }}
-                           disabled={isRole3 || !(piData["pre-seleccion"] || false)}
-                           style={{
-                             opacity: (piData["pre-seleccion"] || false) ? 1 : 0.5,
-                             cursor: (piData["pre-seleccion"] || false) ? 'pointer' : 'not-allowed'
-                           }}
+                                // Espacios disponibles son 1,2,3
+                                const possibleOrders = [1, 2, 3];
+                                const freeOrder = possibleOrders.find(order => !occupiedOrders.includes(order));
+                                
+                                if (!freeOrder) {
+                                  console.log("Ya hay 3 productos seleccionados. No se puede seleccionar otro.");
+                                  return; // No hacer nada si no hay espacio
+                                }
+                                selectionorder = freeOrder;
+                              } else {
+                                // Si se está deseleccionando, liberar el selectionorder
+                                selectionorder = null;
+                              }
+                              
+                              // Actualizar inmediatamente el estado local (solo si existe el registro)
+                              setPiFormulacionRecords(prevRecords => {
+                                const existingIndex = prevRecords.findIndex(
+                                  prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                                );
+                                
+                                if (existingIndex !== -1) {
+                                  const newRecords = [...prevRecords];
+                                  newRecords[existingIndex] = {
+                                    ...newRecords[existingIndex],
+                                    "Seleccion": newValue,
+                                    selectionorder: selectionorder
+                                  };
+                                  return newRecords;
+                                }
+                                // Si no existe el registro, no hacer nada (no crear)
+                                return prevRecords;
+                              });
+                              
+                              // Luego hacer la llamada al servidor (solo si existe el registro)
+                              try {
+                                await handleApprovalChange(record, "Seleccion", newValue);
+                              } catch (error) {
+                                console.error('Error al actualizar selección:', error);
+                                // Si hay error, revertir el estado local
+                                setPiFormulacionRecords(prevRecords => {
+                                  const existingIndex = prevRecords.findIndex(
+                                    prevRecord => String(prevRecord.rel_id_prov) === String(record.id)
+                                  );
+                                  
+                                  if (existingIndex !== -1) {
+                                    const newRecords = [...prevRecords];
+                                    newRecords[existingIndex] = {
+                                      ...newRecords[existingIndex],
+                                      "Seleccion": !newValue,
+                                      selectionorder: null
+                                    };
+                                    return newRecords;
+                                  }
+                                  return prevRecords;
+                                });
+                              }
+                            }}
+                                                       disabled={isRole3}
+                            style={{
+                              opacity: 1,
+                              cursor: 'pointer'
+                            }}
                          />
                        </td>
                     </tr>
