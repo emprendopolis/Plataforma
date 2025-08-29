@@ -103,6 +103,15 @@ export default function DynamicRecordEdit() {
     'Más de $20,684 mill'
   ];
 
+  // Opciones para sector general
+  const sectorGeneralOptions = [
+    'Artesanias',
+    'Calzado y Marroquineria',
+    'Cosmetica y Belleza',
+    'Gastronomia',
+    'Textil y Confecciones'
+  ];
+
   // Opciones de priorización
   const priorizacionOptions = [
     'Grupo 1',
@@ -1000,6 +1009,19 @@ export default function DynamicRecordEdit() {
                         >
                           <option value="">-- Selecciona una opción --</option>
                           {activosOptions.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : field.column_name === 'sector_general' ? (
+                        <select
+                          className="form-control"
+                          name={field.column_name}
+                          value={record[field.column_name] || ''}
+                          onChange={handleChange}
+                          disabled={role === '3'}
+                        >
+                          <option value="">-- Selecciona un sector --</option>
+                          {sectorGeneralOptions.map((option) => (
                             <option key={option} value={option}>{option}</option>
                           ))}
                         </select>
