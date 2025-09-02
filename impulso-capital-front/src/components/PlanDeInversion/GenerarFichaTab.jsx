@@ -235,6 +235,48 @@ export default function GenerarFichaTab({ id }) {
     return currentY;
   };
 
+  // Función para escribir texto que se puede dividir entre páginas
+  const writeTextWithPageBreak = (doc, text, x, y, maxWidth, fontSize = 11) => {
+    const lines = doc.splitTextToSize(text, maxWidth);
+    let currentY = y;
+    let remainingLines = [...lines];
+    
+    while (remainingLines.length > 0) {
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const availableHeight = pageHeight - currentY - 40; // 40px de margen inferior
+      
+      // Calcular cuántas líneas caben en la página actual
+      const linesPerPage = Math.floor(availableHeight / (fontSize * 1.2));
+      
+      if (linesPerPage <= 0) {
+        // No cabe ninguna línea, nueva página
+        doc.addPage();
+        currentY = 40;
+        continue;
+      }
+      
+      // Tomar las líneas que caben en esta página
+      const linesToWrite = remainingLines.slice(0, linesPerPage);
+      const remainingLinesAfter = remainingLines.slice(linesPerPage);
+      
+      // Escribir las líneas en la página actual
+      doc.text(linesToWrite, x, currentY);
+      
+      if (remainingLinesAfter.length > 0) {
+        // Hay más líneas, agregar nueva página
+        doc.addPage();
+        currentY = 40;
+        remainingLines = remainingLinesAfter;
+      } else {
+        // Todas las líneas fueron escritas
+        currentY += linesToWrite.length * (fontSize * 1.2);
+        break;
+      }
+    }
+    
+    return currentY;
+  };
+
   // Color de las tablas
       const tableColor = [18, 11, 42]; // #120b2a
 
@@ -420,7 +462,7 @@ export default function GenerarFichaTab({ id }) {
           const leftX = margin;
           const rightX = margin + columnWidth + 10; // 10px de separación entre columnas
           
-          // Verificar si necesitamos nueva página
+          // Verificar si necesitamos nueva página para el campo izquierdo
           yPosition = checkPageEnd(doc, yPosition, 40); // Espacio estimado para la fila
           
           // Guardar la posición Y inicial para esta fila
@@ -441,14 +483,24 @@ export default function GenerarFichaTab({ id }) {
             const rightLabel = `${getDisplayName(rightField)}:`;
             const rightValue = datosTab[rightField] || 'No disponible';
             
-            // Usar la misma posición Y inicial para alinear perfectamente
+            // Verificar si el campo derecho cabe en la misma página
+            const rightTotalHeight = doc.splitTextToSize(rightLabel, columnWidth).length * 14 + 
+                                   doc.splitTextToSize(rightValue, columnWidth).length * 14;
+            
+            if (yPosition + rightTotalHeight > doc.internal.pageSize.getHeight() - 40) {
+              // No cabe, nueva página
+              doc.addPage();
+              yPosition = 40;
+            }
+            
+            // Usar la posición Y actual para el campo derecho
             doc.setFont(undefined, 'bold');
             const rightLabelLines = doc.splitTextToSize(rightLabel, columnWidth);
-            doc.text(rightLabelLines, rightX, rowStartY);
+            doc.text(rightLabelLines, rightX, yPosition);
             
             doc.setFont(undefined, 'normal');
             const rightValueLines = doc.splitTextToSize(rightValue, columnWidth);
-            doc.text(rightValueLines, rightX, rowStartY + rightLabelLines.length * 14);
+            doc.text(rightValueLines, rightX, yPosition + rightLabelLines.length * 14);
           }
           
           // Calcular la altura máxima de esta fila para mover a la siguiente
@@ -473,16 +525,13 @@ export default function GenerarFichaTab({ id }) {
           }
 
           doc.setFont(undefined, 'bold');
-          const labelLines = doc.splitTextToSize(label, maxLineWidth);
-          yPosition = checkPageEnd(doc, yPosition, labelLines.length * 14);
-          doc.text(labelLines, margin, yPosition);
-          yPosition += labelLines.length * 14;
+          // Escribir el label que puede dividirse entre páginas
+          yPosition = writeTextWithPageBreak(doc, label, margin, yPosition, maxLineWidth, fontSizes.normal);
 
           doc.setFont(undefined, 'normal');
-          const valueLines = doc.splitTextToSize(value, maxLineWidth);
-          yPosition = checkPageEnd(doc, yPosition, valueLines.length * 14);
-          doc.text(valueLines, margin, yPosition);
-          yPosition += valueLines.length * 14 + 10;
+          // Escribir el valor que puede dividirse entre páginas
+          yPosition = writeTextWithPageBreak(doc, value, margin, yPosition, maxLineWidth, fontSizes.normal);
+          yPosition += 10; // Espacio adicional entre campos
         });
       } else {
         doc.text("No hay datos generales del negocio disponibles.", margin, yPosition);
@@ -646,7 +695,15 @@ export default function GenerarFichaTab({ id }) {
       };
 
       // Filtrar solo los registros seleccionados de pi_formulacion_prov
-      const selectedFormulacionProv = formulacionProvData.filter(item => item.Seleccion === true);
+      const selectedFormulacionProv = formulacionProvData
+        .filter(item => item.Seleccion === true)
+        .sort((a, b) => {
+          // Ordenar por selectionorder: 1 (primario) primero, luego los demás
+          if (a.selectionorder === 1 && b.selectionorder !== 1) return -1;
+          if (a.selectionorder !== 1 && b.selectionorder === 1) return 1;
+          // Si ambos son primarios o ambos son complementarios, mantener el orden original
+          return (a.selectionorder || 0) - (b.selectionorder || 0);
+        });
 
       if (selectedFormulacionProv.length > 0) {
         const formulacionHeaders = [
