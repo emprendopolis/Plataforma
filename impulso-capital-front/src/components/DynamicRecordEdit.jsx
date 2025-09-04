@@ -1401,7 +1401,7 @@ export default function DynamicRecordEdit() {
                                     fontWeight: '500',
                                   }}
                                   onClick={() =>
-                                    role !== '3' && handleOpenComplianceModal(file)
+                                    handleOpenComplianceModal(file)
                                   }
                                 >
                                   {file.cumple === true ||
