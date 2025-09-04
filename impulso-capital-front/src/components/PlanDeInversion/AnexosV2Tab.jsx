@@ -10,6 +10,10 @@ export default function AnexosV2Tab({ id }) {
   const [error, setError] = useState(null);
   const [originalData, setOriginalData] = useState(null);
 
+  // Verificar el rol del usuario
+  const userRole = localStorage.getItem('role_id');
+  const isConsultaRole = userRole === '3';
+
   // Estados para el modal
   const [showModal, setShowModal] = useState(false);
   const [currentField, setCurrentField] = useState(null);
@@ -257,7 +261,12 @@ export default function AnexosV2Tab({ id }) {
             <button
               className="btn btn-link text-danger btn-sm ms-2 p-0"
               onClick={() => handleFileDelete(fieldName)}
-              title="Eliminar archivo"
+              title={isConsultaRole ? "No tienes permisos para eliminar archivos" : "Eliminar archivo"}
+              disabled={isConsultaRole}
+              style={{ 
+                opacity: isConsultaRole ? 0.5 : 1,
+                cursor: isConsultaRole ? 'not-allowed' : 'pointer'
+              }}
             >
               <i className="fas fa-trash"></i>
             </button>
