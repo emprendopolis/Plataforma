@@ -309,10 +309,10 @@ export default function GenerarFichaTab({ id }) {
       // Mapeo directo de tipos de documento comunes
       const tipoMap = {
         '1': 'Cédula de Ciudadanía',
-        '2': 'Tarjeta de Identidad',
-        '3': 'Cédula de Extranjería',
+        '2': 'Cédula de Extranjería',
+        '3': 'Tarjeta de Identidad',
         '4': 'Pasaporte',
-        '5': 'NIT'
+        '5': 'Permiso por proteccion temporal'
       };
       return tipoMap[tipoId] || `Tipo ${tipoId}`;
     };
