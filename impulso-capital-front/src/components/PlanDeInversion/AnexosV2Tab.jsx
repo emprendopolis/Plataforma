@@ -21,13 +21,26 @@ export default function AnexosV2Tab({ id }) {
 
   // Nombres de los documentos para mostrar
   const documentNames = {
+    // Documentos Primera Visita
     autorizacion_tratamiento_proteccion_datos: 'Autorización tratamiento y protección de datos personales',
     designacion_responsable: 'Designación responsable',
     carta_compromiso: 'Carta de vinculación',
     acta_visita_1: 'Acta de visita 1',
     plan_inversion: 'Plan de inversión',
     evidencia_fotografica_1: 'Evidencia fotográfica 1',
-    acta_retiro: 'Acta de retiro'
+    acta_retiro: 'Acta de retiro',
+    
+    // Cierre de Ruta
+    acta_visita_2: 'Acta de Visita 2',
+    recibo_satisfaccion: 'Formato de recibo a satisfacción',
+    evidencia_fotografica_2: 'Registro fotográfico',
+    facturas: 'Facturas',
+    acta_comite: 'Formato Acta de Comité de aprobación de compras',
+    bienes_Aprobados: 'Excel con bienes aprobados',
+    acta_causales: 'Acta de causales de inasistencia',
+    lista_asistencia: 'GH-F-008 Formato Lista de Asistencia',
+    certificado_formacion: 'Certificado de formación',
+    incumplimiento: 'Acta de incumplimiento'
   };
 
   const fetchData = async () => {
@@ -40,23 +53,19 @@ export default function AnexosV2Tab({ id }) {
         return;
       }
 
-      console.log('📡 fetchData - Obteniendo datos de:', `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`);
 
       const response = await axios.get(
         `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log('📦 fetchData - Respuesta completa:', response.data);
 
       const recordData = response.data[0] || null;
 
       if (recordData) {
-        console.log('📋 fetchData - Datos del registro:', recordData);
         setData(recordData);
         setOriginalData({ ...recordData });
       } else {
-        console.log('🆕 fetchData - Creando nuevo registro...');
         // Crear registro con user_id si el backend lo necesita
         const userId = localStorage.getItem('id');
         const createResponse = await axios.post(
@@ -65,7 +74,6 @@ export default function AnexosV2Tab({ id }) {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const newRecord = createResponse.data.record || createResponse.data; 
-        console.log('🆕 fetchData - Nuevo registro creado:', newRecord);
         setData({ ...newRecord });
         setOriginalData({ ...newRecord });
       }
@@ -165,11 +173,9 @@ export default function AnexosV2Tab({ id }) {
 
   const handleFileView = async (filePath) => {
     try {
-      console.log('🔍 handleFileView - filePath:', filePath);
       
       // Si filePath ya es una URL firmada, usarla directamente
       if (filePath.startsWith('https://')) {
-        console.log('✅ Usando URL firmada existente:', filePath);
         window.open(filePath, '_blank');
         return;
       }
@@ -187,7 +193,6 @@ export default function AnexosV2Tab({ id }) {
         }
       );
 
-      console.log('✅ URL firmada obtenida:', response.data.signedUrl);
       
       // Abrir el archivo en una nueva pestaña
       window.open(response.data.signedUrl, '_blank');
@@ -208,8 +213,6 @@ export default function AnexosV2Tab({ id }) {
           // Extraer el nombre del archivo de la ruta de GCS
           const fileName = data[fieldName].split('/').pop();
           
-          console.log('🗑️ Eliminando archivo:', fileName);
-          console.log('🏷️ Campo a limpiar:', fieldName);
           
           const response = await axios.delete(
             `${config.baseUrl}/inscriptions/pi/tables/${tableName}/record/${data.caracterizacion_id}/file/${fileName}`,
@@ -225,12 +228,9 @@ export default function AnexosV2Tab({ id }) {
             }
           );
           
-          console.log('✅ Respuesta del servidor:', response.data);
         }
 
-        console.log('🔄 Actualizando datos...');
         await fetchData();
-        console.log('✅ Datos actualizados');
       } catch (error) {
         console.error('Error eliminando el archivo:', error);
         setError('Error eliminando el archivo');
@@ -286,6 +286,30 @@ export default function AnexosV2Tab({ id }) {
     );
   };
 
+  // Separar los campos por secciones
+  const primeraVisitaFields = [
+    'autorizacion_tratamiento_proteccion_datos',
+    'designacion_responsable', 
+    'carta_compromiso',
+    'acta_visita_1',
+    'plan_inversion',
+    'evidencia_fotografica_1',
+    'acta_retiro'
+  ];
+
+  const cierreRutaFields = [
+    'acta_visita_2',
+    'recibo_satisfaccion',
+    'evidencia_fotografica_2',
+    'facturas',
+    'acta_comite',
+    'bienes_Aprobados',
+    'acta_causales',
+    'lista_asistencia',
+    'certificado_formacion',
+    'incumplimiento'
+  ];
+
   return (
     <div>
       {loading ? (
@@ -293,11 +317,21 @@ export default function AnexosV2Tab({ id }) {
       ) : error ? (
         <div className="alert alert-danger">{error}</div>
       ) : (
-        <div style={{ maxWidth: '600px' }}>
-          <div className="card p-4">
-            <h5 className="mb-4" style={{ fontWeight: 'bold' }}>Documentos primera visita</h5>
+        <div style={{ maxWidth: '800px' }}>
+          {/* Sección Documentos Primera Visita */}
+          <div className="card p-4 mb-4">
+            <h5 className="mb-4" style={{ fontWeight: 'bold' }}>Documentos Primera Visita</h5>
             
-            {Object.keys(documentNames).map(fieldName => 
+            {primeraVisitaFields.map(fieldName => 
+              renderDocumentItem(fieldName)
+            )}
+          </div>
+
+          {/* Sección Cierre de Ruta */}
+          <div className="card p-4">
+            <h5 className="mb-4" style={{ fontWeight: 'bold' }}>Cierre de Ruta</h5>
+            
+            {cierreRutaFields.map(fieldName => 
               renderDocumentItem(fieldName)
             )}
           </div>

@@ -3639,12 +3639,21 @@ exports.uploadAnexosV2File = async (req, res) => {
     const finalFileName = fileName || req.file.originalname;
     console.log('📄 Nombre final del archivo:', finalFileName);
 
-    // Generar la ruta de GCS usando generateVisita1Path
+    // Generar la ruta de GCS según el tipo de campo
     let gcsPath;
     try {
       console.log('🔄 Generando ruta GCS...');
-      const { generateVisita1Path } = require('../utils/gcs');
-      gcsPath = await generateVisita1Path(caracterizacion_id, fieldName, finalFileName);
+      const { generateVisita1Path, generateCierreRutaPath } = require('../utils/gcs');
+      
+      // Determinar qué función usar según el campo
+      const cierreRutaFields = ['acta_visita_2', 'recibo_satisfaccion', 'evidencia_fotografica_2', 'facturas', 'acta_comite', 'bienes_Aprobados', 'acta_causales', 'lista_asistencia', 'certificado_formacion', 'incumplimiento'];
+      
+      if (cierreRutaFields.includes(fieldName)) {
+        gcsPath = await generateCierreRutaPath(caracterizacion_id, fieldName, finalFileName);
+      } else {
+        gcsPath = await generateVisita1Path(caracterizacion_id, fieldName, finalFileName);
+      }
+      
       console.log('✅ Ruta GCS generada:', gcsPath);
     } catch (pathError) {
       console.error('❌ Error generando ruta GCS:', pathError);

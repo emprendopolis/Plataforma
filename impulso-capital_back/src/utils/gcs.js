@@ -25,8 +25,17 @@ const DOCUMENT_CODES = {
   'recibo_publico': 'RP',
   'documento_antiguedad': 'DA',
   
-  // Cierre de Ruta (futuro - pi_anexosv2)
-  // Se agregarán cuando se definan los campos
+  // Cierre de Ruta (pi_anexosv2)
+  'acta_visita_2': 'AV2',
+  'recibo_satisfaccion': 'VEB',
+  'evidencia_fotografica_2': 'RF2',
+  'facturas': 'Fact',
+  'acta_comite': 'AC_de_AC',
+  'bienes_Aprobados': 'Bien aprob',
+  'acta_causales': 'ACI',
+  'lista_asistencia': 'List_Asist',
+  'certificado_formacion': 'Cert form',
+  'incumplimiento': 'AI'
 };
 
 /**
@@ -186,38 +195,43 @@ async function generateInicialesPath(caracterizacion_id, documentType, fileName)
 }
 
 /**
- * Genera la ruta de GCS para archivos de Cierre de Ruta (futuro)
+ * Genera la ruta de GCS para archivos de Cierre de Ruta
  * @param {number} caracterizacion_id - ID de caracterización
  * @param {string} fieldName - Nombre del campo en la base de datos
  * @param {string} fileName - Nombre del archivo
- * @param {number} factNumber - Número de factura (opcional)
  * @returns {Promise<string>} - Ruta completa en GCS
  */
-async function generateCierreRutaPath(caracterizacion_id, fieldName, fileName, factNumber = null) {
+async function generateCierreRutaPath(caracterizacion_id, fieldName, fileName) {
+  console.log('🔍 [generateCierreRutaPath] Iniciando...');
+  console.log('📋 Parámetros:', { caracterizacion_id, fieldName, fileName });
+  
   const userData = await getUserData(caracterizacion_id);
+  
+  const documentCode = DOCUMENT_CODES[fieldName];
+  console.log('📄 Código de documento:', documentCode);
+  
+  if (!documentCode) {
+    console.log('❌ Código de documento no definido para:', fieldName);
+    throw new Error(`Código de documento no definido para el campo: ${fieldName}`);
+  }
   
   // Extraer la extensión del archivo original
   const fileExtension = fileName.split('.').pop();
+  console.log('📄 Extensión del archivo:', fileExtension);
   
   const basePath = `${userData.cedula}_${userData.nombre}`;
-  const folderPath = `3. Cierre de Ruta_${userData.grupo}/Factura y soporte de entrega`;
+  const folderPath = `3. Cierre de Ruta_${userData.grupo}`;
   
   // Generar el nombre base del archivo
-  let baseFileName;
-  if (factNumber) {
-    baseFileName = `${userData.cedula}_${userData.nombre}_Fact ${factNumber}_${userData.grupo}`;
-  } else {
-    const documentCode = DOCUMENT_CODES[fieldName];
-    if (!documentCode) {
-      throw new Error(`Código de documento no definido para el campo: ${fieldName}`);
-    }
-    baseFileName = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}`;
-  }
+  const baseFileName = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}`;
   
   // Generar nombre único
   const finalFileName = await generateUniqueFileName(basePath, folderPath, baseFileName, fileExtension);
   
-  return `${basePath}/${folderPath}/${finalFileName}`;
+  const finalPath = `${basePath}/${folderPath}/${finalFileName}`;
+  
+  console.log('✅ [generateCierreRutaPath] Ruta final generada:', finalPath);
+  return finalPath;
 }
 
 /**
