@@ -31,7 +31,7 @@ const DOCUMENT_CODES = {
   'evidencia_fotografica_2': 'RF2',
   'facturas': 'Fact',
   'acta_comite': 'AC_de_AC',
-  'bienes_Aprobados': 'Bien aprob',
+  'bienes_aprobados': 'Bien aprob',
   'acta_causales': 'ACI',
   'lista_asistencia': 'List_Asist',
   'certificado_formacion': 'Cert form',
