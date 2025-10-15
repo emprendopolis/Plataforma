@@ -69,10 +69,8 @@ export default function ProviderKitTableList() {
   // Columnas fijas que queremos mostrar para kits
   const defaultColumns = [
     'codigoKit',
-    'cantidad_bienes',
     'Nombre Proveedor',
     'Ejecutivo de cuenta',
-    'Valor Catalogo y/o referencia',
     'Precio',
     'Calificacion'
   ];
@@ -80,10 +78,8 @@ export default function ProviderKitTableList() {
   // Mapeo de nombres de columnas para mostrar nombres más amigables
   const columnDisplayNames = {
     'codigoKit': 'Código KIT',
-    'cantidad_bienes': 'Cantidad y Descripción del bien',
     'Nombre Proveedor': 'Nombre Proveedor',
     'Ejecutivo de cuenta': 'Ejecutivo de cuenta',
-    'Valor Catalogo y/o referencia': 'Valor Catalogo y/o referencia',
     'Precio': 'Precio',
     'Calificacion': 'Calificacion'
   };
@@ -342,16 +338,16 @@ export default function ProviderKitTableList() {
 
                   {/* Tabla tipo PiTableList */}
                   <div className="table-responsive">
-                    <table className="table table-hover text-nowrap minimal-table" style={{ tableLayout: 'fixed', width: 'auto', minWidth: '1300px', borderCollapse: 'separate', borderSpacing: 0 }}>
+                    <table className="table table-hover text-nowrap minimal-table" style={{ tableLayout: 'fixed', width: 'auto', minWidth: '900px', borderCollapse: 'separate', borderSpacing: 0 }}>
                                              <thead>
                          <tr>
                            {defaultColumns.map((column) => (
                              <th key={column} style={{
                                textAlign: column === 'Nombre Proveedor' ? 'left' : 'center',
                                verticalAlign: 'middle',
-                               width: column === 'Nombre Proveedor' ? '300px' : column === 'cantidad_bienes' ? '280px' : column === 'codigoKit' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Valor Catalogo y/o referencia' ? '200px' : 'auto',
-                               minWidth: column === 'Nombre Proveedor' ? '300px' : column === 'cantidad_bienes' ? '280px' : column === 'codigoKit' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Valor Catalogo y/o referencia' ? '200px' : 'auto',
-                               maxWidth: column === 'Nombre Proveedor' ? '300px' : column === 'cantidad_bienes' ? '280px' : column === 'codigoKit' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Valor Catalogo y/o referencia' ? '200px' : 'auto',
+                               width: column === 'Nombre Proveedor' ? '300px' : column === 'codigoKit' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : 'auto',
+                               minWidth: column === 'Nombre Proveedor' ? '300px' : column === 'codigoKit' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : 'auto',
+                               maxWidth: column === 'Nombre Proveedor' ? '300px' : column === 'codigoKit' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : 'auto',
                                overflow: 'hidden',
                                textOverflow: 'ellipsis',
                                whiteSpace: 'nowrap'
@@ -370,14 +366,10 @@ export default function ProviderKitTableList() {
                              <tr key={record.id} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
                                {/* Código Kit */}
                                <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'codigoKit')}</td>
-                               {/* Descripción Kit con unidades */}
-                               <td style={{ verticalAlign: 'top', fontSize: 15, textAlign: 'left' }}>{formatTextWithLineBreaks(getColumnDisplayValue(record, 'cantidad_bienes'))}</td>
                                {/* Nombre Proveedor */}
                                <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'left' }}>{getColumnDisplayValue(record, 'Nombre Proveedor')}</td>
                                {/* Ejecutivo de cuenta */}
                                <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Ejecutivo de cuenta')}</td>
-                               {/* Valor Catalogo */}
-                               <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{formatCurrency(getColumnDisplayValue(record, 'Valor Catalogo y/o referencia'))}</td>
                                {/* Precio */}
                                <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{formatCurrency(getColumnDisplayValue(record, 'Precio'))}</td>
                                {/* Calificacion */}

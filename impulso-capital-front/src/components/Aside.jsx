@@ -92,8 +92,8 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* Proveedores: visible solo para SuperAdmin (role === 1) */}
-              {role === 1 && (
+              {/* Proveedores: visible para SuperAdmin (role === 1) y Compras (role === 6) */}
+              {(role === 1 || role === 6) && (
                 <li className="nav-item">
                   <Link to="/provider-tables" className="nav-link">
                     <i className="nav-icon fas fa-truck" />
@@ -102,8 +102,8 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* ProveedoresKit: visible solo para SuperAdmin (role === 1) */}
-              {role === 1 && (
+              {/* ProveedoresKit: visible para SuperAdmin (role === 1) y Compras (role === 6) */}
+              {(role === 1 || role === 6) && (
                 <li className="nav-item">
                   <Link to="/provider-kit-tables" className="nav-link">
                     <i className="nav-icon fas fa-box" />
@@ -112,8 +112,8 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* Empresas: visible para roles 1, 2, 3, 4, 5 */}
-              {(role === 1 || role === 2 || role === 3 || role === 4 || role === 5) && (
+              {/* Empresas: visible para roles 1, 2, 3, 4, 5, 6 */}
+              {(role === 1 || role === 2 || role === 3 || role === 4 || role === 5 || role === 6) && (
                 <li className="nav-item">
                   <Link to="/dynamic-tables" className="nav-link">
                     <i className="nav-icon fas fa-building" />
@@ -122,8 +122,8 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* Listado Final: visible para roles 1, 2, 3, 4 y 5 */}
-              {(role === 1 || role === 2 || role === 3 || role === 4 || role === 5) && (
+              {/* Listado Final: visible para roles 1, 2, 3, 4, 5, 6 */}
+              {(role === 1 || role === 2 || role === 3 || role === 4 || role === 5 || role === 6) && (
                 <li className="nav-item">
                   <Link to="/pi-tables" className="nav-link">
                     <i className="nav-icon fas fa-chart-line" />
@@ -142,7 +142,7 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* Usuarios: visible para roles 1 y 2 */}
+              {/* Usuarios: visible para roles 1, 2 y 6 */}
               {(role === 1 || role === 2) && (
                 <li className="nav-item">
                   <Link to="/usuarios" className="nav-link">

@@ -1108,7 +1108,7 @@ export default function DynamicRecordEdit() {
                       <div style={estadoStyle}>
                         {currentEstado?.label || 'Sin estado'}
                       </div>
-                      {(role === '1' || role === '2') && (
+                      {(role === '1' || role === '2' || role === '6') && (
                         <button
                           className="btn btn-secondary btn-sm btn-block mt-2"
                           onClick={handleOpenStatusModal}
@@ -1167,7 +1167,7 @@ export default function DynamicRecordEdit() {
                             )}
                           </div>
                         ))}
-                        {(role === '1' || role === '2') && (
+                        {(role === '1' || role === '2' || role === '6') && (
                           <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoPriorizacion(true)}>
                             Editar
                           </button>
@@ -1422,7 +1422,7 @@ export default function DynamicRecordEdit() {
                                 </p>
                               )}
                             </div>
-                            {(role === '1' || role === '2') && (
+                            {(role === '1' || role === '2' || role === '6') && (
                               <button
                                 className="btn btn-danger btn-sm"
                                 onClick={() => handleInicialesFileDelete(file.id)}

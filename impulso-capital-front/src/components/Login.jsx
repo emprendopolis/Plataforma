@@ -36,6 +36,8 @@ export default function Login() {
             ? "SuperAdmin"
             : response.data.user.role === 2
             ? "Administrador"
+            : response.data.user.role === 6
+            ? "Compras"
             : "Usuario"
         ); // Guardar role_name basado en role_id
 

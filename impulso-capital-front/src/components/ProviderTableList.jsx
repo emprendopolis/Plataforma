@@ -30,18 +30,14 @@ export default function ProviderTableList() {
   const [filters, setFilters] = useState({
     search: '',
     elemento: '',
-    categoria: '',
     ejecutivo: ''
   });
 
   // Columnas fijas que queremos mostrar
   const defaultColumns = [
-    'Categoría',
     'Elemento',
-    'Descripcion corta',
     'Nombre Proveedor',
     'Ejecutivo de cuenta',
-    'Valor catalogo',
     'Precio',
     'Calificacion'
   ];
@@ -267,13 +263,10 @@ export default function ProviderTableList() {
     const matchesElemento = !filters.elemento || 
       getColumnDisplayValue(record, 'Elemento') === filters.elemento;
     
-    const matchesCategoria = !filters.categoria || 
-      getColumnDisplayValue(record, 'Categoría') === filters.categoria;
-    
     const matchesEjecutivo = !filters.ejecutivo || 
       getColumnDisplayValue(record, 'Ejecutivo de cuenta') === filters.ejecutivo;
 
-    return matchesSearch && matchesElemento && matchesCategoria && matchesEjecutivo;
+    return matchesSearch && matchesElemento && matchesEjecutivo;
   });
 
   // Calcular paginación
@@ -439,7 +432,7 @@ export default function ProviderTableList() {
                   </div>
                   {/* Filtros alineados horizontalmente */}
                   <div className="row mb-3">
-                    <div className="col-sm-4">
+                    <div className="col-sm-6">
                       <select className="form-control" value={filters.elemento} onChange={e => setFilters(prev => ({ ...prev, elemento: e.target.value }))}>
                         <option value="">Todos los Elementos</option>
                         {getUniqueOptions('Elemento').map(option => (
@@ -447,15 +440,7 @@ export default function ProviderTableList() {
                         ))}
                       </select>
                     </div>
-                    <div className="col-sm-4">
-                      <select className="form-control" value={filters.categoria} onChange={e => setFilters(prev => ({ ...prev, categoria: e.target.value }))}>
-                        <option value="">Todas las Categorías</option>
-                        {getUniqueOptions('Categoría').map(option => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-sm-4">
+                    <div className="col-sm-6">
                       <select className="form-control" value={filters.ejecutivo} onChange={e => setFilters(prev => ({ ...prev, ejecutivo: e.target.value }))}>
                         <option value="">Todos los Ejecutivos</option>
                         {getUniqueOptions('Ejecutivo de cuenta').map(option => (
@@ -466,16 +451,16 @@ export default function ProviderTableList() {
                   </div>
                   {/* Tabla tipo PiTableList */}
                   <div className="table-responsive">
-                    <table className="table table-hover text-nowrap minimal-table" style={{ tableLayout: 'fixed', width: 'auto', minWidth: '1300px', borderCollapse: 'separate', borderSpacing: 0 }}>
+                    <table className="table table-hover text-nowrap minimal-table" style={{ tableLayout: 'fixed', width: 'auto', minWidth: '900px', borderCollapse: 'separate', borderSpacing: 0 }}>
                       <thead>
                         <tr>
                           {defaultColumns.map((column) => (
                             <th key={column} style={{
                               textAlign: column === 'Nombre Proveedor' ? 'left' : 'center',
                               verticalAlign: 'middle',
-                              width: column === 'Nombre Proveedor' ? '300px' : column === 'Descripcion corta' ? '280px' : column === 'Elemento' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Categoría' ? '150px' : 'auto',
-                              minWidth: column === 'Nombre Proveedor' ? '300px' : column === 'Descripcion corta' ? '280px' : column === 'Elemento' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Categoría' ? '150px' : 'auto',
-                              maxWidth: column === 'Nombre Proveedor' ? '300px' : column === 'Descripcion corta' ? '280px' : column === 'Elemento' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Categoría' ? '150px' : 'auto',
+                              width: column === 'Nombre Proveedor' ? '300px' : column === 'Elemento' ? '200px' : column === 'Ejecutivo de cuenta' ? '177px' : 'auto',
+                              minWidth: column === 'Nombre Proveedor' ? '300px' : column === 'Elemento' ? '200px' : column === 'Ejecutivo de cuenta' ? '177px' : 'auto',
+                              maxWidth: column === 'Nombre Proveedor' ? '300px' : column === 'Elemento' ? '200px' : column === 'Ejecutivo de cuenta' ? '177px' : 'auto',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap'
@@ -492,12 +477,8 @@ export default function ProviderTableList() {
                         ) : (
                           paginatedRecords.map((record, index) => (
                             <tr key={record.id} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
-                              {/* Categoría */}
-                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Categoría')}</td>
                               {/* Elemento */}
-                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Elemento')}</td>
-                              {/* Descripción corta */}
-                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Descripcion corta')}</td>
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'left' }}>{getColumnDisplayValue(record, 'Elemento')}</td>
                               {/* Nombre Proveedor + NIT/CC debajo */}
                               <td style={{ verticalAlign: 'middle', fontWeight: 700, fontSize: 16, color: '#222', textAlign: 'left', width: '300px', minWidth: '300px', maxWidth: '300px', overflow: 'hidden' }}>
                                 {getColumnDisplayValue(record, 'Nombre Proveedor')}
@@ -509,8 +490,6 @@ export default function ProviderTableList() {
                               </td>
                               {/* Ejecutivo de cuenta */}
                               <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Ejecutivo de cuenta')}</td>
-                              {/* Valor Catálogo */}
-                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{formatCurrency(getColumnDisplayValue(record, 'Valor Catalogo y/o referencia') || getColumnDisplayValue(record, 'Valor catalogo'))}</td>
                               {/* Precio */}
                               <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{formatCurrency(getColumnDisplayValue(record, 'Precio'))}</td>
                               {/* Calificación */}
