@@ -115,7 +115,8 @@ export default function DynamicRecordEdit() {
   // Opciones de priorización
   const priorizacionOptions = [
     'Grupo 1',
-    'Grupo 2'
+    'Grupo 2',
+    'Grupo 3'
   ];
   const [editandoPriorizacion, setEditandoPriorizacion] = useState(false);
   const [valorPriorizacion, setValorPriorizacion] = useState('');

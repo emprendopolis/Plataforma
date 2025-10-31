@@ -34,7 +34,7 @@ async function getDocumentPathsForEmpresa(empresaId) {
 }
 
 /**
- * Obtiene todos los archivos de una empresa desde GCS por cédula
+ * Obtiene los archivos registrados en pi_anexosv2 para una cédula
  * @param {string} cedula
  * @returns {Promise<{files: Array<{gcsPath: string, name: string, relativePath: string, size: string}>, folderName: string}>}
  */
@@ -42,50 +42,147 @@ async function getDocumentPathsForCedula(cedula) {
   const files = [];
   
   try {
-    console.log(`Buscando cédula ${cedula} en la base de datos...`);
     
-    // Buscar en la base de datos para obtener el nombre completo de la carpeta
+    // Buscar en la base de datos para obtener el nombre completo de la carpeta y el caracterizacion_id
     const client = await pool.connect();
     const result = await client.query(
-      'SELECT "Nombres", "Apellidos" FROM inscription_caracterizacion WHERE "Numero de identificacion" = $1',
+      'SELECT id, "Nombres", "Apellidos" FROM inscription_caracterizacion WHERE "Numero de identificacion" = $1',
       [cedula]
     );
-    client.release();
 
     if (result.rows.length === 0) {
+      client.release();
       throw new Error('Cédula no encontrada en la base de datos');
     }
 
+    const caracterizacionId = result.rows[0].id;
     const nombres = result.rows[0].Nombres || '';
     const apellidos = result.rows[0].Apellidos || '';
     const nombreCompleto = `${nombres} ${apellidos}`.trim();
     const folderName = `${cedula}_${nombreCompleto}`;
     
-    console.log(`Cédula ${cedula}: ${nombreCompleto} - ${folderName}`);
     
-    // Buscar archivos en la carpeta del Google Drive
-    const [empresaFiles] = await bucket.getFiles({ prefix: `${folderName}/` });
-    
-    console.log(`Archivos encontrados en GCS: ${empresaFiles.length}`);
-    
-    empresaFiles.forEach(file => {
-      if (!file.name.endsWith('/')) {
-        const fileName = file.name.split('/').pop();
-        // Extraer la ruta relativa dentro de la carpeta principal
-        const relativePath = file.name.replace(`${folderName}/`, '');
-        files.push({ 
-          gcsPath: file.name, 
-          name: fileName,
-          relativePath: relativePath, // Nueva propiedad para preservar estructura
-          size: file.metadata?.size || 'unknown'
-        });
+    // Buscar el registro en pi_anexosv2 para obtener los documentos registrados
+    const anexosResult = await client.query(
+      'SELECT * FROM pi_anexosv2 WHERE caracterizacion_id = $1',
+      [caracterizacionId]
+    );
+
+    // Procesar documentos de pi_anexosv2 si existen
+    if (anexosResult.rows.length > 0) {
+      const anexosRecord = anexosResult.rows[0];
+      
+      // Obtener todos los campos que contengan rutas de archivos (no nulos y diferentes de cadena vacía)
+      const documentFields = Object.keys(anexosRecord).filter(key => {
+        const value = anexosRecord[key];
+        return value !== null && value !== undefined && value !== '' && typeof value === 'string';
+      });
+
+
+      // Procesar cada ruta de archivo registrada en pi_anexosv2
+      for (const fieldName of documentFields) {
+        const filePath = anexosRecord[fieldName];
+        
+        // Saltar campos que no son rutas de archivos (como id, caracterizacion_id, created_at, updated_at, etc.)
+        if (['id', 'caracterizacion_id', 'created_at', 'updated_at', 'user_id'].includes(fieldName)) {
+          continue;
+        }
+
+        if (filePath && typeof filePath === 'string' && filePath.trim() !== '') {
+          try {
+          // Verificar que el archivo existe en GCS
+          const file = bucket.file(filePath);
+          const [exists] = await file.exists();
+          
+          if (exists) {
+            // Obtener los metadatos del archivo
+            const [metadata] = await file.getMetadata();
+            const fileName = filePath.split('/').pop();
+            
+            // Extraer la ruta relativa dentro de la carpeta principal
+            // Si la ruta comienza con el folderName, usarla; si no, construir la ruta relativa
+            let relativePath = filePath;
+            if (filePath.startsWith(`${folderName}/`)) {
+              relativePath = filePath.replace(`${folderName}/`, '');
+            }
+            
+            files.push({
+              gcsPath: filePath, 
+              name: fileName,
+              relativePath: relativePath,
+              size: metadata.size || 'unknown',
+              fieldName: fieldName // Guardar el nombre del campo para referencia
+            });
+            
+          } else {
+          }
+        } catch (fileError) {
+          continue; // Continuar con el siguiente archivo
+        }
       }
-    });
+    }
+      
+    } else {
+    }
     
-    console.log(`Total de archivos válidos: ${files.length}`);
+    // Obtener documentos iniciales de la tabla files
+    const inicialesResult = await client.query(
+      `SELECT file_path, name FROM files 
+       WHERE record_id = $1 
+       AND table_name = 'inscription_caracterizacion' 
+       AND source = 'documentos_iniciales'`,
+      [caracterizacionId]
+    );
+
+    client.release();
+
+
+    // Procesar cada documento inicial
+    for (const row of inicialesResult.rows) {
+      const filePath = row.file_path;
+      
+      if (filePath && typeof filePath === 'string' && filePath.trim() !== '') {
+        try {
+          // Limpiar la ruta si contiene la URL completa del bucket
+          let cleanPath = filePath;
+          const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
+          if (cleanPath.startsWith(bucketUrl)) {
+            cleanPath = cleanPath.slice(bucketUrl.length);
+          }
+          
+          // Verificar que el archivo existe en GCS
+          const file = bucket.file(cleanPath);
+          const [exists] = await file.exists();
+          
+          if (exists) {
+            // Obtener los metadatos del archivo
+            const [metadata] = await file.getMetadata();
+            const fileName = row.name || cleanPath.split('/').pop();
+            
+            // Extraer la ruta relativa dentro de la carpeta principal
+            let relativePath = cleanPath;
+            if (cleanPath.startsWith(`${folderName}/`)) {
+              relativePath = cleanPath.replace(`${folderName}/`, '');
+            }
+            
+            files.push({
+              gcsPath: cleanPath, 
+              name: fileName,
+              relativePath: relativePath,
+              size: metadata.size || 'unknown',
+              fieldName: 'documentos_iniciales' // Marcar como documento inicial
+            });
+            
+          } else {
+          }
+        } catch (fileError) {
+          continue; // Continuar con el siguiente archivo
+        }
+      }
+    }
+    
     return { files, folderName };
   } catch (error) {
-    console.error('Error obteniendo documentos por cédula:', error);
     throw error;
   }
 }
@@ -151,7 +248,6 @@ router.get('/descarga-documentos/:id', async (req, res) => {
 router.get('/descarga-documentos-cedula/:cedula', async (req, res) => {
   const cedula = req.params.cedula;
   
-  console.log(`Iniciando descarga para cédula: ${cedula}`);
   
   try {
     // 1. Obtener documentos por cédula
@@ -159,10 +255,8 @@ router.get('/descarga-documentos-cedula/:cedula', async (req, res) => {
     const documentPaths = result.files;
     const folderName = result.folderName;
     
-    console.log(`Documentos encontrados: ${documentPaths.length}`);
 
     if (documentPaths.length === 0) {
-      console.log(`No se encontraron archivos para cédula: ${cedula}`);
       return res.status(404).json({ message: 'No se encontraron archivos para esta cédula' });
     }
 
@@ -170,7 +264,6 @@ router.get('/descarga-documentos-cedula/:cedula', async (req, res) => {
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename=${folderName}.zip`);
     
-    console.log(`Configurando archiver para ${documentPaths.length} archivos`);
 
     // 3. Crear archiver con configuración simple
     const archive = archiver('zip', { 
@@ -186,18 +279,15 @@ router.get('/descarga-documentos-cedula/:cedula', async (req, res) => {
     });
 
     archive.on('end', () => {
-      console.log(`ZIP generado exitosamente para cédula: ${cedula}`);
     });
 
     archive.on('warning', (err) => {
-      console.warn('Warning en archiver:', err);
     });
 
     // 5. Conectar archiver a la respuesta
     archive.pipe(res);
 
     // 6. Agregar archivos uno por uno
-    console.log('Agregando archivos al ZIP...');
     
     for (let i = 0; i < documentPaths.length; i++) {
       const doc = documentPaths[i];
@@ -208,7 +298,6 @@ router.get('/descarga-documentos-cedula/:cedula', async (req, res) => {
         // Verificar existencia del archivo
         const [exists] = await file.exists();
         if (!exists) {
-          console.warn(`Archivo no encontrado: ${doc.gcsPath}`);
           continue;
         }
 
@@ -216,25 +305,20 @@ router.get('/descarga-documentos-cedula/:cedula', async (req, res) => {
         const fileStream = file.createReadStream();
         
         fileStream.on('error', (err) => {
-          console.error(`Error en stream de ${doc.name}:`, err);
         });
 
         // Agregar archivo al ZIP preservando la estructura de carpetas
         archive.append(fileStream, { name: doc.relativePath });
         
       } catch (fileError) {
-        console.error(`Error procesando archivo ${doc.name}:`, fileError);
         continue; // Continuar con el siguiente archivo
       }
     }
 
     // 7. Finalizar el archivo
-    console.log('Finalizando archivo ZIP...');
     await archive.finalize();
-    console.log('Proceso de descarga completado');
 
   } catch (error) {
-    console.error('Error general en descarga por cédula:', error);
     
     if (!res.headersSent) {
       if (error.message === 'Cédula no encontrada en la base de datos') {
@@ -249,7 +333,6 @@ router.get('/descarga-documentos-cedula/:cedula', async (req, res) => {
 // Endpoint de prueba para verificar que la ruta funcione
 router.get('/test-cedula/:cedula', async (req, res) => {
   const cedula = req.params.cedula;
-  console.log(`Test endpoint llamado para cédula: ${cedula}`);
   
   try {
     const result = await getDocumentPathsForCedula(cedula);
@@ -264,7 +347,6 @@ router.get('/test-cedula/:cedula', async (req, res) => {
       archivos: documentPaths
     });
   } catch (error) {
-    console.error('Error en test endpoint:', error);
     
     // Manejar específicamente el caso de cédula no encontrada
     if (error.message === 'Cédula no encontrada en la base de datos') {
