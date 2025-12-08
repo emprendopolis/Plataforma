@@ -409,8 +409,35 @@ export default function GenerarFichaTab({ id }) {
       doc.setFont(undefined, 'normal');
       yPosition += 15;
 
+      // Función para verificar si un campo es solo para Grupo 3 (debe excluirse de este PDF)
+      const isGrupo3OnlyField = (fieldName) => {
+        const grupo3Fields = [
+          'fechayhora_visita',
+          'dedicacion_unica',
+          'descripcionCapacidadProduccion',
+          'arrendatarioLocal',
+          'condicionesArriendo',
+          'cuentaconDeuda',
+          'condicionesDeuda',
+          'modalidadCapitalizacion',
+          'justificacionModalidad',
+          'sujetoParticipacion'
+        ];
+        return grupo3Fields.includes(fieldName);
+      };
+
       const piDatosFields = Object.keys(datosTab).filter(
-        (key) => !datosKeys.includes(key) && key !== 'caracterizacion_id'
+        (key) => {
+          // Filtrar campos no deseados
+          if (datosKeys.includes(key) || key === 'caracterizacion_id' || key === 'id') {
+            return false;
+          }
+          // Excluir campos que son solo para Grupo 3
+          if (isGrupo3OnlyField(key)) {
+            return false;
+          }
+          return true;
+        }
       );
 
       // Mapeo de nombres de campos para mostrar etiquetas más amigables (igual que en DatosTab)

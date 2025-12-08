@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import config from '../../config';
 
-export default function DatosTab({ id }) {
+export default function DatosTab({ id, onModalidadChange }) {
   const [fields, setFields] = useState([]);
   const [data, setData] = useState({ caracterizacion_id: id });
   const [tableName] = useState('pi_datos');
   const [loading, setLoading] = useState(false);
   const [recordId, setRecordId] = useState(null);
   const [error, setError] = useState(null);
+  const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
 
   // Estados para historial
   const [history, setHistory] = useState([]);
@@ -30,7 +31,17 @@ export default function DatosTab({ id }) {
     'valor_gastos_familiares': 'Valor gastos familiares mensuales promedio',
     'descripcion_negocio': 'Descripción general del negocio',
     'descripcion_lugar_actividad': 'Descripción del lugar donde desarrolla la actividad',
-    'descripcion_capacidad_produccion': 'Descripción de la capacidad de producción'
+    'descripcion_capacidad_produccion': 'Descripción de la capacidad de producción',
+    'fechayhora_visita': 'Fecha y hora de la visita',
+    'dedicacion_unica': '¿El espacio tienen dedicación única para el desarrollo de las actividades productivas del negocio?',
+    'descripcionCapacidadProduccion': 'Descripción de la capacidad de producción o de los niveles prestación del servicio o de la dinámica de comercialización (según actividad productiva o económica)',
+    'arrendatarioLocal': '¿Es arrendatario del local?',
+    'condicionesArriendo': 'Las condiciones del arriendo cumplen con los requisitos para el uso de esta modalidad de capitalización',
+    'cuentaconDeuda': '¿El negocio cuenta con una deuda comercial (productiva)?',
+    'condicionesDeuda': 'Las condiciones de la deuda cumplen con los requisitos para el uso de esta modalidad de capitalización',
+    'modalidadCapitalizacion': 'Cuál modalidad de capitalización se utilizará (elija una de las siguientes):',
+    'justificacionModalidad': 'Justificación de la modalidad a través de la cual se dará la capitalización',
+    'sujetoParticipacion': 'El negocio local es sujeto de participación en espacios de conexión con el mercado con el producto y/o servicio que tiene actualmente'
   };
 
   // Función para obtener el nombre de visualización de un campo
@@ -51,6 +62,17 @@ export default function DatosTab({ id }) {
       'Si',
       'No'
     ],
+    'dedicacion_unica': ['Si', 'No'],
+    'arrendatarioLocal': ['Si', 'No'],
+    'condicionesArriendo': ['Si', 'No'],
+    'cuentaconDeuda': ['Si', 'No'],
+    'condicionesDeuda': ['Si', 'No'],
+    'modalidadCapitalizacion': [
+      'Cobertura de deuda comercial financiera',
+      'Pago de canon de arrendamiento',
+      'Proveeduría de bienes'
+    ],
+    'sujetoParticipacion': ['Si', 'No'],
     'tiempo_dedicacion': [
       'Parcial',
       'Total'
@@ -98,14 +120,118 @@ export default function DatosTab({ id }) {
     return fieldOptions.hasOwnProperty(fieldName);
   };
 
+  // Función para verificar si un campo es de fecha y hora
+  const isDateTimeField = (fieldName) => {
+    return fieldName === 'fechayhora_visita';
+  };
+
+  // Función para convertir formato YYYY-MM-DDTHH:MM (datetime-local) a DD/MM/YYYY - HH:MM
+  const formatDateTimeForDisplay = (dateTimeStr) => {
+    if (!dateTimeStr) return '';
+    // Si viene de la BD en formato YYYY-MM-DD HH:MM:SS o YYYY-MM-DDTHH:MM:SS
+    if (dateTimeStr.includes('T')) {
+      const [datePart, timePart] = dateTimeStr.split('T');
+      const [year, month, day] = datePart.split('-');
+      const [hour, minute] = timePart.split(':');
+      return `${day}/${month}/${year} - ${hour}:${minute}`;
+    } else if (dateTimeStr.includes(' ')) {
+      const [datePart, timePart] = dateTimeStr.split(' ');
+      const [year, month, day] = datePart.split('-');
+      const [hour, minute] = timePart.split(':');
+      return `${day}/${month}/${year} - ${hour}:${minute}`;
+    }
+    // Si ya está en formato DD/MM/YYYY - HH:MM, devolverlo tal cual
+    return dateTimeStr;
+  };
+
+  // Función para convertir formato DD/MM/YYYY - HH:MM a YYYY-MM-DDTHH:MM (para datetime-local)
+  const formatDateTimeForInput = (dateTimeStr) => {
+    if (!dateTimeStr) return '';
+    // Si ya está en formato YYYY-MM-DDTHH:MM, restar 5 horas
+    if (dateTimeStr.includes('T')) {
+      const [datePart, timePart] = dateTimeStr.split('T');
+      const [year, month, day] = datePart.split('-');
+      const [hour, minute] = timePart.split(':');
+      
+      // Crear fecha y restar 5 horas para compensar zona horaria
+      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+      date.setHours(date.getHours() - 5);
+      
+      // Formatear de vuelta a YYYY-MM-DDTHH:MM
+      const adjustedYear = date.getFullYear();
+      const adjustedMonth = String(date.getMonth() + 1).padStart(2, '0');
+      const adjustedDay = String(date.getDate()).padStart(2, '0');
+      const adjustedHour = String(date.getHours()).padStart(2, '0');
+      const adjustedMinute = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${adjustedYear}-${adjustedMonth}-${adjustedDay}T${adjustedHour}:${adjustedMinute}`;
+    }
+    // Si viene de la BD en formato YYYY-MM-DD HH:MM:SS, restar 5 horas
+    if (dateTimeStr.includes(' ') && !dateTimeStr.includes('/')) {
+      const [datePart, timePart] = dateTimeStr.split(' ');
+      const [year, month, day] = datePart.split('-');
+      const [hour, minute] = timePart.split(':');
+      
+      // Crear fecha y restar 5 horas para compensar zona horaria
+      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+      date.setHours(date.getHours() - 5);
+      
+      // Formatear de vuelta a YYYY-MM-DDTHH:MM
+      const adjustedYear = date.getFullYear();
+      const adjustedMonth = String(date.getMonth() + 1).padStart(2, '0');
+      const adjustedDay = String(date.getDate()).padStart(2, '0');
+      const adjustedHour = String(date.getHours()).padStart(2, '0');
+      const adjustedMinute = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${adjustedYear}-${adjustedMonth}-${adjustedDay}T${adjustedHour}:${adjustedMinute}`;
+    }
+    // Si está en formato DD/MM/YYYY - HH:MM, convertir a YYYY-MM-DDTHH:MM
+    if (dateTimeStr.includes('/') && dateTimeStr.includes(' - ')) {
+      const [datePart, timePart] = dateTimeStr.split(' - ');
+      const [day, month, year] = datePart.split('/');
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}`;
+    }
+    return dateTimeStr;
+  };
+
+  // Función para convertir formato YYYY-MM-DDTHH:MM a YYYY-MM-DD HH:MM:SS (para guardar en BD)
+  const formatDateTimeForSave = (dateTimeStr) => {
+    if (!dateTimeStr) return '';
+    // Si viene del input datetime-local (YYYY-MM-DDTHH:MM)
+    if (dateTimeStr.includes('T')) {
+      return dateTimeStr.replace('T', ' ') + ':00';
+    }
+    // Si ya está en formato YYYY-MM-DD HH:MM:SS, devolverlo
+    return dateTimeStr;
+  };
+
   // Función para verificar si un campo debe ocupar toda la fila
   const isFullWidthField = (fieldName) => {
     const fullWidthFields = [
       'descripcion_negocio',
       'descripcion_lugar_actividad', 
-      'descripcion_capacidad_produccion'
+      'descripcion_capacidad_produccion',
+      'descripcionCapacidadProduccion',
+      'justificacionModalidad'
     ];
     return fullWidthFields.includes(fieldName);
+  };
+
+  // Función para verificar si un campo es solo para Grupo 3
+  const isGrupo3OnlyField = (fieldName) => {
+    const grupo3Fields = [
+      'fechayhora_visita',
+      'dedicacion_unica',
+      'descripcionCapacidadProduccion',
+      'arrendatarioLocal',
+      'condicionesArriendo',
+      'cuentaconDeuda',
+      'condicionesDeuda',
+      'modalidadCapitalizacion',
+      'justificacionModalidad',
+      'sujetoParticipacion'
+    ];
+    return grupo3Fields.includes(fieldName);
   };
 
   // Función para obtener el número de filas para textareas específicos
@@ -155,6 +281,14 @@ export default function DatosTab({ id }) {
         );
         setFields(fieldsResponse.data);
 
+        // Obtener el valor de Priorizacion capitalizacion
+        const caracterizacionResponse = await axios.get(
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const priorizacion = caracterizacionResponse.data.record?.['Priorizacion capitalizacion'] ?? null;
+        setPriorizacionCapitalizacion(priorizacion);
+
         // Obtener registro existente filtrado por caracterizacion_id
         const recordsResponse = await axios.get(
           `${config.urls.inscriptions.base}/pi/tables/${tableName}/records?caracterizacion_id=${id}`,
@@ -167,8 +301,17 @@ export default function DatosTab({ id }) {
 
         if (recordsResponse.data.length > 0) {
           const existingRecord = recordsResponse.data[0];
+          // Convertir fecha y hora al formato para el input datetime-local
+          if (existingRecord.fechayhora_visita) {
+            existingRecord.fechayhora_visita = formatDateTimeForInput(existingRecord.fechayhora_visita);
+          }
           setData(existingRecord);
           setRecordId(existingRecord.id);
+          
+          // Notificar modalidadCapitalizacion al componente padre si existe
+          if (existingRecord.modalidadCapitalizacion && onModalidadChange) {
+            onModalidadChange(existingRecord.modalidadCapitalizacion);
+          }
         } else {
           setData((prevData) => ({ ...prevData, caracterizacion_id: id }));
         }
@@ -185,7 +328,13 @@ export default function DatosTab({ id }) {
   }, [tableName, id]);
 
   const handleChange = (e) => {
-    setData({ ...data, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setData({ ...data, [name]: value });
+    
+    // Notificar cambio de modalidadCapitalizacion al componente padre
+    if (name === 'modalidadCapitalizacion' && onModalidadChange) {
+      onModalidadChange(value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -197,6 +346,11 @@ export default function DatosTab({ id }) {
       }
 
       const recordData = { ...data, caracterizacion_id: id };
+
+      // Convertir fecha y hora al formato para guardar en BD
+      if (recordData.fechayhora_visita) {
+        recordData.fechayhora_visita = formatDateTimeForSave(recordData.fechayhora_visita);
+      }
 
       if (recordId) {
         // Actualizar registro existente
@@ -210,6 +364,11 @@ export default function DatosTab({ id }) {
           }
         );
         alert('Datos actualizados exitosamente');
+        
+        // Notificar cambio de modalidadCapitalizacion después de actualizar
+        if (recordData.modalidadCapitalizacion && onModalidadChange) {
+          onModalidadChange(recordData.modalidadCapitalizacion);
+        }
       } else {
         // Crear nuevo registro
         // Si el controlador espera 'user_id', usar user_id:
@@ -228,6 +387,11 @@ export default function DatosTab({ id }) {
           }
         );
         alert('Datos guardados exitosamente');
+        
+        // Notificar cambio de modalidadCapitalizacion después de guardar
+        if (recordData.modalidadCapitalizacion && onModalidadChange) {
+          onModalidadChange(recordData.modalidadCapitalizacion);
+        }
       }
     } catch (error) {
       console.error('Error guardando los datos:', error);
@@ -272,28 +436,60 @@ export default function DatosTab({ id }) {
       ) : (
         <div>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', alignItems: 'start' }}>
               {fields
-                .filter((field) => field.column_name !== 'id' && field.column_name !== 'caracterizacion_id')
+                .filter((field) => {
+                  // Filtrar campos id y caracterizacion_id
+                  if (field.column_name === 'id' || field.column_name === 'caracterizacion_id') {
+                    return false;
+                  }
+                  // Si es un campo solo para Grupo 3, solo mostrarlo si priorizacionCapitalizacion === 'Grupo 3'
+                  if (isGrupo3OnlyField(field.column_name)) {
+                    return priorizacionCapitalizacion === 'Grupo 3';
+                  }
+                  return true;
+                })
+                .sort((a, b) => {
+                  // Definir el orden de prioridad de los campos
+                  const order = {
+                    'fechayhora_visita': 1,
+                    'modalidadCapitalizacion': 2,
+                    'justificacionModalidad': 3,
+                    'sector': 4,
+                    'priorizado': 5
+                  };
+                  
+                  const orderA = order[a.column_name] || 999;
+                  const orderB = order[b.column_name] || 999;
+                  
+                  return orderA - orderB;
+                })
                 .map((field) => {
                   const isFullWidth = isFullWidthField(field.column_name);
+                  
+                  // Campos que necesitan espacio adicional arriba para alineación
+                  const needsTopSpacing = field.column_name === 'arrendatarioLocal' || field.column_name === 'cuentaconDeuda';
                   
                   return (
                     <div 
                       key={field.column_name} 
                       style={{
-                        minWidth: '200px',
-                        minHeight: '60px',
-                        width: isFullWidth ? '100%' : 'calc(50% - 8px)',
-                        maxWidth: isFullWidth ? '100%' : 'calc(50% - 8px)',
+                        gridColumn: isFullWidth ? '1 / -1' : 'span 1',
+                        display: 'flex',
+                        flexDirection: 'column',
                         maxHeight: '500px',
                         boxSizing: 'border-box',
-                        marginBottom: '16px',
-                        display: 'block',
-                        padding: 0
+                        padding: 0,
+                        paddingTop: needsTopSpacing ? '20px' : '0'
                       }}
                     >
-                      <label style={{ padding: '10px', display: 'block' }}>{getDisplayName(field.column_name)}</label>
+                      <label style={{ 
+                        padding: '5px 10px 2px 10px', 
+                        minHeight: 'auto',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        marginBottom: '2px'
+                      }}>{getDisplayName(field.column_name)}</label>
                       {isSelectField(field.column_name) ? (
                         <select
                           name={field.column_name}
@@ -313,6 +509,26 @@ export default function DatosTab({ id }) {
                             </option>
                           ))}
                         </select>
+                      ) : isDateTimeField(field.column_name) ? (
+                        <>
+                          <input
+                            type="datetime-local"
+                            name={field.column_name}
+                            className="form-control"
+                            value={data[field.column_name] || ''}
+                            onChange={handleChange}
+                            style={{
+                              width: '100%',
+                              minHeight: '40px'
+                            }}
+                            disabled={role === '3'}
+                          />
+                          {data[field.column_name] && (
+                            <small className="form-text text-muted" style={{ padding: '5px 10px', display: 'block' }}>
+                              Fecha y hora seleccionada: {formatDateTimeForDisplay(data[field.column_name])}
+                            </small>
+                          )}
+                        </>
                       ) : (
                         <textarea
                           name={field.column_name}

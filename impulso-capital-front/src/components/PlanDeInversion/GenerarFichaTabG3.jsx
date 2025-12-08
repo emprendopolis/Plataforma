@@ -409,9 +409,52 @@ export default function GenerarFichaTabG3({ id }) {
       doc.setFont(undefined, 'normal');
       yPosition += 15;
 
-      const piDatosFields = Object.keys(datosTab).filter(
-        (key) => !datosKeys.includes(key) && key !== 'caracterizacion_id'
-      );
+      // Función para verificar si un campo es solo para Grupo 3
+      const isGrupo3OnlyField = (fieldName) => {
+        const grupo3Fields = [
+          'fechayhora_visita',
+          'dedicacion_unica',
+          'descripcionCapacidadProduccion',
+          'arrendatarioLocal',
+          'condicionesArriendo',
+          'cuentaconDeuda',
+          'condicionesDeuda',
+          'modalidadCapitalizacion',
+          'justificacionModalidad',
+          'sujetoParticipacion'
+        ];
+        return grupo3Fields.includes(fieldName);
+      };
+
+      const piDatosFields = Object.keys(datosTab)
+        .filter(
+          (key) => {
+            // Filtrar campos no deseados
+            if (datosKeys.includes(key) || key === 'caracterizacion_id' || key === 'id') {
+              return false;
+            }
+            // Si es un campo solo para Grupo 3, solo incluirlo si es Grupo 3
+            if (isGrupo3OnlyField(key)) {
+              return grupoParticipacion === 'Grupo 3';
+            }
+            return true;
+          }
+        )
+        .sort((a, b) => {
+          // Definir el orden de prioridad de los campos (igual que en DatosTab)
+          const order = {
+            'fechayhora_visita': 1,
+            'modalidadCapitalizacion': 2,
+            'justificacionModalidad': 3,
+            'sector': 4,
+            'priorizado': 5
+          };
+          
+          const orderA = order[a] || 999;
+          const orderB = order[b] || 999;
+          
+          return orderA - orderB;
+        });
 
       // Mapeo de nombres de campos para mostrar etiquetas más amigables (igual que en DatosTab)
       const fieldNameMapping = {
@@ -426,7 +469,17 @@ export default function GenerarFichaTabG3({ id }) {
         'valor_gastos_familiares': 'Valor gastos familiares mensuales promedio',
         'descripcion_negocio': 'Descripción general del negocio',
         'descripcion_lugar_actividad': 'Descripción del lugar donde desarrolla la actividad',
-        'descripcion_capacidad_produccion': 'Descripción de la capacidad de producción'
+        'descripcion_capacidad_produccion': 'Descripción de la capacidad de producción',
+        'fechayhora_visita': 'Fecha y hora de la visita',
+        'dedicacion_unica': '¿El espacio tienen dedicación única para el desarrollo de las actividades productivas del negocio?',
+        'descripcionCapacidadProduccion': 'Descripción de la capacidad de producción o de los niveles prestación del servicio o de la dinámica de comercialización (según actividad productiva o económica)',
+        'arrendatarioLocal': '¿Es arrendatario del local?',
+        'condicionesArriendo': 'Las condiciones del arriendo cumplen con los requisitos para el uso de esta modalidad de capitalización',
+        'cuentaconDeuda': '¿El negocio cuenta con una deuda comercial (productiva)?',
+        'condicionesDeuda': 'Las condiciones de la deuda cumplen con los requisitos para el uso de esta modalidad de capitalización',
+        'modalidadCapitalizacion': 'Cuál modalidad de capitalización se utilizará (elija una de las siguientes):',
+        'justificacionModalidad': 'Justificación de la modalidad a través de la cual se dará la capitalización',
+        'sujetoParticipacion': 'El negocio local es sujeto de participación en espacios de conexión con el mercado con el producto y/o servicio que tiene actualmente'
       };
 
       // Función para obtener el nombre de visualización de un campo
@@ -439,9 +492,29 @@ export default function GenerarFichaTabG3({ id }) {
         const fullWidthFields = [
           'descripcion_negocio',
           'descripcion_lugar_actividad', 
-          'descripcion_capacidad_produccion'
+          'descripcion_capacidad_produccion',
+          'descripcionCapacidadProduccion',
+          'justificacionModalidad'
         ];
         return fullWidthFields.includes(fieldName);
+      };
+
+      // Función para formatear fecha y hora de DD/MM/YYYY - HH:MM
+      const formatDateTimeForDisplay = (dateTimeStr) => {
+        if (!dateTimeStr) return 'No disponible';
+        // Si viene de la BD en formato YYYY-MM-DD HH:MM:SS o YYYY-MM-DDTHH:MM:SS
+        if (dateTimeStr.includes('T')) {
+          const [datePart, timePart] = dateTimeStr.split('T');
+          const [year, month, day] = datePart.split('-');
+          const [hour, minute] = timePart.split(':');
+          return `${day}/${month}/${year} - ${hour}:${minute}`;
+        } else if (dateTimeStr.includes(' ')) {
+          const [datePart, timePart] = dateTimeStr.split(' ');
+          const [year, month, day] = datePart.split('-');
+          const [hour, minute] = timePart.split(':');
+          return `${day}/${month}/${year} - ${hour}:${minute}`;
+        }
+        return dateTimeStr;
       };
 
       if (piDatosFields.length > 0) {
@@ -455,67 +528,90 @@ export default function GenerarFichaTabG3({ id }) {
           const rightField = normalFields[i + 1];
           
           const leftLabel = `${getDisplayName(leftField)}:`;
-          const leftValue = datosTab[leftField] || 'No disponible';
+          let leftValue = datosTab[leftField] || 'No disponible';
+          // Formatear fecha y hora si es el campo fechayhora_visita
+          if (leftField === 'fechayhora_visita') {
+            leftValue = formatDateTimeForDisplay(leftValue);
+          }
           
           // Calcular posiciones para dos columnas
           const columnWidth = (pageWidth - 2 * margin) / 2;
           const leftX = margin;
           const rightX = margin + columnWidth + 10; // 10px de separación entre columnas
           
-          // Verificar si necesitamos nueva página para el campo izquierdo
-          yPosition = checkPageEnd(doc, yPosition, 40); // Espacio estimado para la fila
+          // Verificar si necesitamos nueva página
+          yPosition = checkPageEnd(doc, yPosition, 60); // Espacio estimado para la fila
           
           // Guardar la posición Y inicial para esta fila
           const rowStartY = yPosition;
           
-          // Dibujar campo izquierdo
+          // Calcular alturas de labels y valores ANTES de dibujar
           doc.setFont(undefined, 'bold');
           const leftLabelLines = doc.splitTextToSize(leftLabel, columnWidth);
-          doc.text(leftLabelLines, leftX, yPosition);
-          yPosition += leftLabelLines.length * 14;
-
+          const leftLabelHeight = leftLabelLines.length * 14;
+          
           doc.setFont(undefined, 'normal');
           const leftValueLines = doc.splitTextToSize(leftValue, columnWidth);
-          doc.text(leftValueLines, leftX, yPosition);
+          const leftValueHeight = leftValueLines.length * 14;
           
-          // Dibujar campo derecho (si existe) alineado con el izquierdo
+          let rightLabelHeight = 0;
+          let rightValueHeight = 0;
+          let rightLabelLines = [];
+          let rightValueLines = [];
+          
           if (rightField) {
             const rightLabel = `${getDisplayName(rightField)}:`;
-            const rightValue = datosTab[rightField] || 'No disponible';
-            
-            // Verificar si el campo derecho cabe en la misma página
-            const rightTotalHeight = doc.splitTextToSize(rightLabel, columnWidth).length * 14 + 
-                                   doc.splitTextToSize(rightValue, columnWidth).length * 14;
-            
-            if (yPosition + rightTotalHeight > doc.internal.pageSize.getHeight() - 40) {
-              // No cabe, nueva página
-              doc.addPage();
-              yPosition = 40;
+            let rightValue = datosTab[rightField] || 'No disponible';
+            // Formatear fecha y hora si es el campo fechayhora_visita
+            if (rightField === 'fechayhora_visita') {
+              rightValue = formatDateTimeForDisplay(rightValue);
             }
             
-            // Usar la posición Y actual para el campo derecho
             doc.setFont(undefined, 'bold');
-            const rightLabelLines = doc.splitTextToSize(rightLabel, columnWidth);
-            doc.text(rightLabelLines, rightX, yPosition);
+            rightLabelLines = doc.splitTextToSize(rightLabel, columnWidth);
+            rightLabelHeight = rightLabelLines.length * 14;
             
             doc.setFont(undefined, 'normal');
-            const rightValueLines = doc.splitTextToSize(rightValue, columnWidth);
-            doc.text(rightValueLines, rightX, yPosition + rightLabelLines.length * 14);
+            rightValueLines = doc.splitTextToSize(rightValue, columnWidth);
+            rightValueHeight = rightValueLines.length * 14;
           }
           
-          // Calcular la altura máxima de esta fila para mover a la siguiente
-          const leftHeight = leftLabelLines.length * 14 + leftValueLines.length * 14;
-          const rightHeight = rightField ? 
-            doc.splitTextToSize(`${getDisplayName(rightField)}:`, columnWidth).length * 14 + 
-            doc.splitTextToSize(datosTab[rightField] || 'No disponible', columnWidth).length * 14 : 0;
+          // Dibujar labels y valores, cada valor justo debajo de su propio label
+          doc.setFont(undefined, 'bold');
+          doc.text(leftLabelLines, leftX, rowStartY);
           
-          yPosition = rowStartY + Math.max(leftHeight, rightHeight) + 10;
+          // Valor izquierdo justo después de su label
+          const leftValueY = rowStartY + leftLabelHeight + 1; // 1px de separación
+          doc.setFont(undefined, 'normal');
+          doc.text(leftValueLines, leftX, leftValueY);
+          
+          // Campo derecho (si existe)
+          if (rightField) {
+            doc.setFont(undefined, 'bold');
+            doc.text(rightLabelLines, rightX, rowStartY);
+            
+            // Valor derecho justo después de su label
+            const rightValueY = rowStartY + rightLabelHeight + 1; // 1px de separación
+            doc.setFont(undefined, 'normal');
+            doc.text(rightValueLines, rightX, rightValueY);
+          }
+          
+          // Calcular la altura máxima de esta fila (labels + valores) para mover a la siguiente
+          const leftTotalHeight = leftLabelHeight + leftValueHeight + 1;
+          const rightTotalHeight = rightField ? (rightLabelHeight + rightValueHeight + 1) : 0;
+          const totalRowHeight = Math.max(leftTotalHeight, rightTotalHeight);
+          
+          yPosition = rowStartY + totalRowHeight + 8; // 8px de separación entre filas (espacio sencillo)
         }
 
         // Procesar campos de ancho completo (descripciones)
         fullWidthFields.forEach((key) => {
           let label = `${getDisplayName(key)}:`;
           let value = datosTab[key] || 'No disponible';
+          // Formatear fecha y hora si es el campo fechayhora_visita
+          if (key === 'fechayhora_visita') {
+            value = formatDateTimeForDisplay(value);
+          }
 
           // Evitar mostrar "ID: " si viene con un prefijo raro
           if (typeof value === 'string' && value.toLowerCase().startsWith('id:')) {

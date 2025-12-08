@@ -27,10 +27,11 @@ export default function PlanDeInversion() {
   const { id } = useParams(); // ID del registro de caracterización
   const [activeTab, setActiveTab] = useState('Datos');
   const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
+  const [modalidadCapitalizacion, setModalidadCapitalizacion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [totalInversionNumerico, setTotalInversionNumerico] = useState(0);
 
-  // Obtener el valor de Priorizacion capitalizacion
+  // Obtener el valor de Priorizacion capitalizacion y modalidadCapitalizacion
   useEffect(() => {
     const fetchPriorizacion = async () => {
       if (!id) {
@@ -51,6 +52,24 @@ export default function PlanDeInversion() {
         );
         
         setPriorizacionCapitalizacion(response.data.record?.['Priorizacion capitalizacion'] ?? null);
+        
+        // Obtener modalidadCapitalizacion desde pi_datos
+        try {
+          const datosResponse = await axios.get(
+            `${config.urls.inscriptions.base}/pi/tables/pi_datos/records?caracterizacion_id=${id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          
+          if (datosResponse.data.length > 0) {
+            setModalidadCapitalizacion(datosResponse.data[0].modalidadCapitalizacion || null);
+          } else {
+            setModalidadCapitalizacion(null);
+          }
+        } catch (error) {
+          console.error('Error obteniendo modalidadCapitalizacion:', error);
+          setModalidadCapitalizacion(null);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error('Error obteniendo la priorización:', error);
@@ -61,18 +80,57 @@ export default function PlanDeInversion() {
     
     fetchPriorizacion();
   }, [id]);
+  
+  // Función para actualizar modalidadCapitalizacion desde DatosTab
+  const updateModalidadCapitalizacion = (newValue) => {
+    setModalidadCapitalizacion(newValue);
+  };
 
-  // Cambiar a un tab válido si el tab activo debe ocultarse
+  // Cambiar a un tab válido si el tab activo debe ocultarse o está bloqueado
   useEffect(() => {
-    if (!loading && priorizacionCapitalizacion && !shouldShowTab(activeTab)) {
-      // Cambiar al primer tab disponible (siempre será "Datos")
-      setActiveTab('Datos');
+    if (!loading && priorizacionCapitalizacion) {
+      if (!shouldShowTab(activeTab) || isTabBlocked(activeTab)) {
+        // Cambiar al primer tab disponible (siempre será "Datos")
+        setActiveTab('Datos');
+      }
     }
-  }, [loading, priorizacionCapitalizacion, activeTab]);
+  }, [loading, priorizacionCapitalizacion, modalidadCapitalizacion, activeTab]);
 
   // Función para actualizar el total de inversión
   const updateTotalInversion = (total) => {
     setTotalInversionNumerico(total);
+  };
+
+  // Función para determinar si un tab debe estar bloqueado (solo para Grupo 3)
+  const isTabBlocked = (tabName) => {
+    // Solo aplicar bloqueo para Grupo 3
+    if (priorizacionCapitalizacion !== 'Grupo 3') {
+      return false;
+    }
+    
+    // Si no hay modalidadCapitalizacion seleccionada, bloquear todos
+    if (!modalidadCapitalizacion) {
+      return tabName === 'Credito' || tabName === 'Arriendo' || tabName === 'FormulacionProv';
+    }
+    
+    // Lógica de bloqueo según modalidadCapitalizacion
+    switch (modalidadCapitalizacion) {
+      case 'Cobertura de deuda comercial financiera':
+        // Solo habilitar Credito
+        return tabName === 'Arriendo' || tabName === 'FormulacionProv';
+        
+      case 'Pago de canon de arrendamiento':
+        // Solo habilitar Arriendo
+        return tabName === 'Credito' || tabName === 'FormulacionProv';
+        
+      case 'Proveeduría de bienes':
+        // Solo habilitar FormulacionProv
+        return tabName === 'Credito' || tabName === 'Arriendo';
+        
+      default:
+        // Si la modalidad no coincide con ninguna, bloquear todos
+        return tabName === 'Credito' || tabName === 'Arriendo' || tabName === 'FormulacionProv';
+    }
   };
 
   // Función para determinar si un tab debe mostrarse
@@ -199,11 +257,14 @@ export default function PlanDeInversion() {
                 <li className={`nav-item ${activeTab === 'Credito' ? 'active' : ''}`}>
                   <a
                     href="#"
-                    className="nav-link"
+                    className={`nav-link ${isTabBlocked('Credito') ? 'disabled' : ''}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      setActiveTab('Credito');
+                      if (!isTabBlocked('Credito')) {
+                        setActiveTab('Credito');
+                      }
                     }}
+                    style={isTabBlocked('Credito') ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
                   >
                     <i className="fas fa-money-bill-wave"></i> Crédito
                   </a>
@@ -213,11 +274,14 @@ export default function PlanDeInversion() {
                 <li className={`nav-item ${activeTab === 'Arriendo' ? 'active' : ''}`}>
                   <a
                     href="#"
-                    className="nav-link"
+                    className={`nav-link ${isTabBlocked('Arriendo') ? 'disabled' : ''}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      setActiveTab('Arriendo');
+                      if (!isTabBlocked('Arriendo')) {
+                        setActiveTab('Arriendo');
+                      }
                     }}
+                    style={isTabBlocked('Arriendo') ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
                   >
                     <i className="fas fa-home"></i> Arriendo
                   </a>
@@ -277,11 +341,14 @@ export default function PlanDeInversion() {
                 <li className={`nav-item ${activeTab === 'FormulacionProv' ? 'active' : ''}`}>
                   <a
                     href="#"
-                    className="nav-link"
+                    className={`nav-link ${isTabBlocked('FormulacionProv') ? 'disabled' : ''}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      setActiveTab('FormulacionProv');
+                      if (!isTabBlocked('FormulacionProv')) {
+                        setActiveTab('FormulacionProv');
+                      }
                     }}
+                    style={isTabBlocked('FormulacionProv') ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
                   >
                     <i className="fas fa-handshake"></i> Formulación con Proveedores
                   </a>
@@ -410,7 +477,7 @@ export default function PlanDeInversion() {
 
           {/* Contenido de las pestañas */}
           <div className="plan-de-inversion-tab-content">
-            {activeTab === 'Datos' && shouldShowTab('Datos') && <DatosTab id={id} />}
+            {activeTab === 'Datos' && shouldShowTab('Datos') && <DatosTab id={id} onModalidadChange={updateModalidadCapitalizacion} />}
             {activeTab === 'PropuestaMejora' && shouldShowTab('PropuestaMejora') && <PropuestaMejoraTab id={id} />}
             {activeTab === 'ActivosActuales' && shouldShowTab('ActivosActuales') && <ActivosActualesTab id={id} />}
             {activeTab === 'Credito' && shouldShowTab('Credito') && <CreditoTab id={id} />}
