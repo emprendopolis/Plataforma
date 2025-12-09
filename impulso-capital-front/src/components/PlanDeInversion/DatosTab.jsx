@@ -154,8 +154,9 @@ export default function DatosTab({ id, onModalidadChange }) {
       const [hour, minute] = timePart.split(':');
       
       // Crear fecha y restar 5 horas para compensar zona horaria
+      // COMENTADO: Ya no se resta 5 horas
       const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
-      date.setHours(date.getHours() - 5);
+      // date.setHours(date.getHours() - 5);
       
       // Formatear de vuelta a YYYY-MM-DDTHH:MM
       const adjustedYear = date.getFullYear();
@@ -173,8 +174,9 @@ export default function DatosTab({ id, onModalidadChange }) {
       const [hour, minute] = timePart.split(':');
       
       // Crear fecha y restar 5 horas para compensar zona horaria
+      // COMENTADO: Ya no se resta 5 horas
       const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
-      date.setHours(date.getHours() - 5);
+      // date.setHours(date.getHours() - 5);
       
       // Formatear de vuelta a YYYY-MM-DDTHH:MM
       const adjustedYear = date.getFullYear();
