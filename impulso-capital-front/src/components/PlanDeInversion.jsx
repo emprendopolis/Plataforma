@@ -145,8 +145,8 @@ export default function PlanDeInversion() {
         'ActivosActuales',
         'Credito',
         'Arriendo',
-        'Validaciones',
         'FormulacionProv',
+        'Validaciones',
         'AnexosV2',
         'GenerarFichaG3'
       ];
@@ -311,20 +311,6 @@ export default function PlanDeInversion() {
                   <i className="fas fa-chalkboard-teacher"></i> Capacitación
                 </a>
               </li> */}
-              {shouldShowTab('Validaciones') && (
-                <li className={`nav-item ${activeTab === 'Validaciones' ? 'active' : ''}`}>
-                  <a
-                    href="#"
-                    className="nav-link"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setActiveTab('Validaciones');
-                    }}
-                  >
-                    <i className="fas fa-check-double"></i> Validaciones
-                  </a>
-                </li>
-              )}
               {/* <li className={`nav-item ${activeTab === 'Formulacion' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -351,6 +337,20 @@ export default function PlanDeInversion() {
                     style={isTabBlocked('FormulacionProv') ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : {}}
                   >
                     <i className="fas fa-handshake"></i> Formulación con Proveedores
+                  </a>
+                </li>
+              )}
+              {shouldShowTab('Validaciones') && (
+                <li className={`nav-item ${activeTab === 'Validaciones' ? 'active' : ''}`}>
+                  <a
+                    href="#"
+                    className="nav-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab('Validaciones');
+                    }}
+                  >
+                    <i className="fas fa-check-double"></i> Validaciones
                   </a>
                 </li>
               )}
