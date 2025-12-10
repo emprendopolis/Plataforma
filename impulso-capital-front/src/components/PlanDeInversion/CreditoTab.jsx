@@ -38,6 +38,59 @@ export default function CreditoTab({ id }) {
 
   // Campos que deben ser listas desplegables
   const selectFields = {
+    'entidad_credito': [
+      'Addi',
+      'Alpina – Fondo de Empleados',
+      'Avista',
+      'Bancamía',
+      'Bancolombia',
+      'Banco AV Villas',
+      'Banco Caja Social',
+      'Banco Cooperativo Coopcentral',
+      'Banco Davivienda',
+      'Banco de Bogotá',
+      'Banco de Occidente',
+      'Banco Falabella',
+      'Banco Finandina',
+      'Banco Pichincha',
+      'Banco Popular',
+      'Banco Serfinanza',
+      'BBVA Colombia',
+      'Cafam (Caja de Compensación)',
+      'Cafam – Fondo de Empleados',
+      'Colsubsidio',
+      'Coltefinanciera',
+      'Comfama',
+      'Comfacor',
+      'Comfandi',
+      'Comfandi – Fondo de Empleados',
+      'Comfama – Fondo de Empleados',
+      'Comfenalco (Antioquia, Valle, etc.)',
+      'Coopava',
+      'Coomeva Cooperativa',
+      'Confiar Cooperativa Financiera',
+      'Crediflores',
+      'Creafam',
+      'FECODECOL – Fondo de Empleados de Ecopetrol',
+      'Financiera Progressa',
+      'Finesa',
+      'FINAGRO',
+      'Finansol',
+      'Fondo Emprender (capital semilla, no crédito directo al público)',
+      'Fondo Nacional de Garantías (FNG)',
+      'Giros & Finanzas',
+      'Itau Colombia',
+      'Juriscoop',
+      'Lineru',
+      'Monet',
+      'OmniBank',
+      'Rapicredit',
+      'RappiCredit',
+      'RappiPay (Compañía de financiamiento)',
+      'Scotiabank Colpatria',
+      'Sempli (crédito para empresas)',
+      'Tuya'
+    ],
     'estado_credito': ['Al día', 'En Mora'],
     'finalizacion_vencimiento_credito': ['Si', 'No'],
     'certificacion_deuda': ['Si', 'No'],
@@ -273,14 +326,20 @@ export default function CreditoTab({ id }) {
               <label htmlFor="entidad_credito">
                 {fieldLabels['entidad_credito']}
               </label>
-              <input
-                type="text"
+              <select
                 className="form-control"
                 id="entidad_credito"
                 name="entidad_credito"
                 value={data.entidad_credito || ''}
                 onChange={handleChange}
-              />
+              >
+                <option value="">-- Selecciona una entidad --</option>
+                {selectFields['entidad_credito'].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
@@ -670,3 +729,4 @@ export default function CreditoTab({ id }) {
 CreditoTab.propTypes = {
   id: PropTypes.string.isRequired,
 };
+

@@ -952,7 +952,7 @@ export default function GenerarFichaTabG3({ id }) {
 
       // Actualizar textoViabilidad con el nuevo contenido
       const textoViabilidad = [
-        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial y haciendo parte del equipo ejecutor del programa " Emprendópolis" que emana del Convenio Interadministrativo entre PROPAIS y SDDE Secretaria de Desarrollo Económico, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa`,
+        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial y haciendo parte del equipo ejecutor del programa Bogotá me apoya durante su transformacion con Impulsa ya (Emprendópolis - Grupo 3) que emana del Convenio Interadministrativo entre PROPAIS y SDDE Secretaria de Desarrollo Económico, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa`,
         "",
         "NOTA: Como asesor empresarial asignado , declaro que toda la información consignada en el presente plan de inversión fue diligenciada en conjunto con el propietario del negocio local y que esta corresponde a las condiciones reales evidenciadas en la visita al negocio, es veraz, completa. De igual manera declaro que se bridó asesoría profesional y técnica al negocio local para la elaboración del plan de inversión y sobre las condiciones del programa Emprendópolis.",
         "",
@@ -1041,5 +1041,6 @@ export default function GenerarFichaTabG3({ id }) {
 GenerarFichaTabG3.propTypes = {
   id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 };
+
 
 
