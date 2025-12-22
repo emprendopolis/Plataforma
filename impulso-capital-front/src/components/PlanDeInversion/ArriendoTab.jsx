@@ -12,7 +12,7 @@ export default function ArriendoTab({ id }) {
 
   // Mapeo de nombres de campos para mostrar etiquetas más amigables
   const fieldNameMapping = {
-    'arrendatario_tipoPersona': 'Arrendador: tipo de persona',
+    'arrendador_tipoPersona': 'Arrendador: tipo de persona',
     'nombreArrendador': 'Nombre del arrendador y/o inmobiliaria',
     'tipoDocumento': 'Tipo de Documento de Identidad',
     'numeroIdentificacion_arrendador': 'Número de Identificacion de Arrendador y/o Inmobiliaria',
@@ -34,7 +34,7 @@ export default function ArriendoTab({ id }) {
 
   // Opciones para los campos de selección
   const fieldOptions = {
-    'arrendatario_tipoPersona': ['Natural', 'Jurídica', 'Inmobiliaria'],
+    'arrendador_tipoPersona': ['Natural', 'Jurídica', 'Inmobiliaria'],
     'tipoDocumento': ['CC', 'CE']
   };
 
@@ -242,7 +242,7 @@ export default function ArriendoTab({ id }) {
 
   // Campos normales (no de verificación)
   const normalFields = [
-    'arrendatario_tipoPersona',
+    'arrendador_tipoPersona',
     'nombreArrendador',
     'tipoDocumento',
     'numeroIdentificacion_arrendador',

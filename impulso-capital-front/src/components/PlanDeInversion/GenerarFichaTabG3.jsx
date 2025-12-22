@@ -23,6 +23,8 @@ export default function GenerarFichaTabG3({ id }) {
   const [groupedRubros, setGroupedRubros] = useState([]);
   const [totalInversion, setTotalInversion] = useState(0);
   const [relatedData, setRelatedData] = useState({});
+  const [creditoData, setCreditoData] = useState(null);
+  const [arriendoData, setArriendoData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -91,7 +93,9 @@ export default function GenerarFichaTabG3({ id }) {
           formulacionResponse,
           formulacionProvResponse,
           providersResponse,
-          elementosResponse
+          elementosResponse,
+          creditoResponse,
+          arriendoResponse
         ] = await Promise.all([
           axios.get(`${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.pi}/tables/inscription_caracterizacion/related-data`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -102,6 +106,8 @@ export default function GenerarFichaTabG3({ id }) {
           axios.get(`${config.urls.inscriptions.pi}/tables/pi_formulacion_prov/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.base}/tables/provider_proveedores/records`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${config.urls.inscriptions.base}/tables/provider_elemento/records`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.pi}/tables/pi_credito/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
+          axios.get(`${config.urls.inscriptions.base}/pi/tables/pi_arriendo/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => ({ data: [] })),
         ]);
 
         // 1. Procesar datos de `inscription_caracterizacion`
@@ -182,7 +188,25 @@ export default function GenerarFichaTabG3({ id }) {
         console.log("Datos de proveedores:", providersResponse.data);
         console.log("Datos de elementos:", elementosResponse.data);
 
-        // 12. Agrupar Rubros y calcular total inversión
+        // 12. Procesar datos de crédito
+        if (creditoResponse.data && creditoResponse.data.length > 0) {
+          setCreditoData(creditoResponse.data[0]);
+          console.log("Datos de crédito:", creditoResponse.data[0]);
+        } else {
+          setCreditoData(null);
+          console.log("No se encontraron datos de crédito.");
+        }
+
+        // 13. Procesar datos de arriendo
+        if (arriendoResponse.data && arriendoResponse.data.length > 0) {
+          setArriendoData(arriendoResponse.data[0]);
+          console.log("Datos de arriendo:", arriendoResponse.data[0]);
+        } else {
+          setArriendoData(null);
+          console.log("No se encontraron datos de arriendo.");
+        }
+
+        // 14. Agrupar Rubros y calcular total inversión
         const rubrosOptions = [
           "Maquinaria y equipo",
           "Insumos/Materias primas",
@@ -764,80 +788,337 @@ export default function GenerarFichaTabG3({ id }) {
         yPosition += 14;
       }
 
-      // 5. FORMULACIÓN DE INVERSIÓN
+      // Obtener la modalidad de capitalización
+      const modalidadCapitalizacion = datosTab.modalidadCapitalizacion || '';
+
+      // Funciones helper para formatear moneda y fechas (disponibles para todas las secciones)
+      const formatCurrency = (value) => {
+        if (!value) return 'No disponible';
+        const numValue = parseFloat(value.toString().replace(/\D/g, ''));
+        if (isNaN(numValue)) return 'No disponible';
+        return `$${numValue.toLocaleString('es-CO', { minimumFractionDigits: 0 })}`;
+      };
+
+      const formatDate = (dateStr) => {
+        if (!dateStr) return 'No disponible';
+        if (dateStr.includes('-')) {
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
+        }
+        return dateStr;
+      };
+
+      // 4. FORMULACIÓN CON PROVEEDORES (solo si modalidadCapitalizacion es "Proveeduría de bienes")
+      if (modalidadCapitalizacion === 'Proveeduría de bienes') {
+        doc.setFontSize(fontSizes.subtitle);
+        doc.setFont(undefined, 'bold');
+        yPosition += 30;
+        doc.text("Formulación con Proveedores", pageWidth / 2, yPosition, { align: 'center' });
+
+        doc.setFontSize(fontSizes.normal);
+        doc.setFont(undefined, 'normal');
+        yPosition += 20;
+
+        // Funciones helper para obtener nombres
+        const getElementoName = (elementoId) => {
+          const elemento = elementosData.find(el => String(el.id) === String(elementoId));
+          return elemento ? elemento.Elemento : 'Desconocido';
+        };
+
+        const getProviderInfo = (providerId) => {
+          const provider = providersData.find(p => String(p.id) === String(providerId));
+          if (!provider) return { elemento: 'Desconocido', descripcion: 'No disponible' };
+          
+          return {
+            elemento: getElementoName(provider.Elemento),
+            descripcion: provider["Descripcion corta"] || 'No disponible'
+          };
+        };
+
+        // Filtrar solo los registros seleccionados de pi_formulacion_prov
+        const selectedFormulacionProv = formulacionProvData
+          .filter(item => item.Seleccion === true)
+          .sort((a, b) => {
+            // Ordenar por selectionorder: 1 (primario) primero, luego los demás
+            if (a.selectionorder === 1 && b.selectionorder !== 1) return -1;
+            if (a.selectionorder !== 1 && b.selectionorder === 1) return 1;
+            // Si ambos son primarios o ambos son complementarios, mantener el orden original
+            return (a.selectionorder || 0) - (b.selectionorder || 0);
+          });
+
+        if (selectedFormulacionProv.length > 0) {
+          const formulacionHeaders = [
+            { header: 'Tipo de bien', dataKey: 'tipoBien' },
+            { header: 'Bien\nseleccionado', dataKey: 'bienSeleccionado' },
+            { header: 'Descripción del bien', dataKey: 'descripcionBien' },
+            { header: 'Cantidad', dataKey: 'cantidad' },
+            { header: 'Descripción dimensiones', dataKey: 'descripcionDimensiones' },
+            { header: 'Justificación', dataKey: 'justificacion' },
+          ];
+
+          const formulacionBody = selectedFormulacionProv.map(item => {
+            const providerInfo = getProviderInfo(item.rel_id_prov);
+            
+            // Lógica para determinar el tipo de bien
+            let tipoBien = 'Sin prioridad';
+            if (item.selectionorder) {
+              if (item.selectionorder === 1) {
+                tipoBien = 'Primario';
+              } else if (item.selectionorder >= 2 && item.selectionorder <= 4) {
+                tipoBien = 'Complementario';
+              }
+            }
+            
+            return {
+              tipoBien: tipoBien,
+              bienSeleccionado: providerInfo.elemento,
+              descripcionBien: providerInfo.descripcion,
+              cantidad: item.Cantidad ? item.Cantidad.toString() : '1',
+              descripcionDimensiones: item["Descripcion dimensiones"] || 'No disponible',
+              justificacion: item.Justificacion || 'No disponible',
+            };
+          });
+
+          doc.autoTable({
+            startY: yPosition,
+            head: [formulacionHeaders.map(col => col.header)],
+            body: formulacionBody.map(row => formulacionHeaders.map(col => row[col.dataKey])),
+            theme: 'striped',
+            styles: { 
+              fontSize: fontSizes.normal, 
+              cellPadding: 4,
+              lineWidth: 0.5,
+              lineColor: [200, 200, 200]
+            },
+            tableWidth: 'auto',
+            headStyles: { 
+              fillColor: tableColor, 
+              textColor: [255, 255, 255], 
+              fontStyle: 'bold',
+              halign: 'center', // Centrado horizontal
+              valign: 'middle'  // Centrado vertical
+            },
+            margin: { left: margin, right: margin },
+            columnStyles: {
+              0: { halign: 'center', cellWidth: 58 }, // Tipo de bien
+              1: { halign: 'left', cellWidth: 85 },   // Bien seleccionado
+              2: { halign: 'left', cellWidth: 110 },  // Descripción del bien
+              3: { halign: 'center', cellWidth: 60 }, // Cantidad
+              4: { halign: 'left', cellWidth: 100 },  // Descripción dimensiones
+              5: { halign: 'left', cellWidth: 100 }   // Justificación
+            },
+            didDrawPage: (data) => {
+              yPosition = data.cursor.y;
+            },
+          });
+
+          yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
+        } else {
+          doc.text("No hay registros de formulación con proveedores.", margin, yPosition);
+          yPosition += 14;
+        }
+      }
+
+      // 5. CRÉDITO (solo si modalidadCapitalizacion es "Cobertura de deuda comercial financiera")
+      if (modalidadCapitalizacion === 'Cobertura de deuda comercial financiera') {
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 20;
-      doc.text("Formulación Plan de Inversión", pageWidth / 2, yPosition, { align: 'center' });
+      doc.text("Crédito", pageWidth / 2, yPosition, { align: 'center' });
 
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
       yPosition += 20;
 
-      // Funciones helper para obtener nombres
-      const getElementoName = (elementoId) => {
-        const elemento = elementosData.find(el => String(el.id) === String(elementoId));
-        return elemento ? elemento.Elemento : 'Desconocido';
-      };
+      // Sección de Crédito
+      if (creditoData) {
 
-      const getProviderInfo = (providerId) => {
-        const provider = providersData.find(p => String(p.id) === String(providerId));
-        if (!provider) return { elemento: 'Desconocido', descripcion: 'No disponible' };
-        
-        return {
-          elemento: getElementoName(provider.Elemento),
-          descripcion: provider["Descripcion corta"] || 'No disponible'
-        };
-      };
-
-      // Filtrar solo los registros seleccionados de pi_formulacion_prov
-      const selectedFormulacionProv = formulacionProvData
-        .filter(item => item.Seleccion === true)
-        .sort((a, b) => {
-          // Ordenar por selectionorder: 1 (primario) primero, luego los demás
-          if (a.selectionorder === 1 && b.selectionorder !== 1) return -1;
-          if (a.selectionorder !== 1 && b.selectionorder === 1) return 1;
-          // Si ambos son primarios o ambos son complementarios, mantener el orden original
-          return (a.selectionorder || 0) - (b.selectionorder || 0);
-        });
-
-      if (selectedFormulacionProv.length > 0) {
-        const formulacionHeaders = [
-          { header: 'Tipo de bien', dataKey: 'tipoBien' },
-          { header: 'Bien\nseleccionado', dataKey: 'bienSeleccionado' },
-          { header: 'Descripción del bien', dataKey: 'descripcionBien' },
-          { header: 'Cantidad', dataKey: 'cantidad' },
-          { header: 'Descripción dimensiones', dataKey: 'descripcionDimensiones' },
-          { header: 'Justificación', dataKey: 'justificacion' },
+        const creditoFields = [
+          { label: 'Entidad financiera', value: creditoData.entidad_credito || 'No disponible' },
+          { label: 'Número de crédito', value: creditoData.numero_credito || 'No disponible' },
+          { label: 'Monto del crédito inicial', value: formatCurrency(creditoData.monto_credito) },
+          { label: 'Fecha de desembolso', value: formatDate(creditoData.fecha_desembolso) },
+          { label: 'Número de cuotas', value: creditoData.numero_cuotas || 'No disponible' },
+          { label: 'Número de cuotas pagadas', value: creditoData.numero_cuotasPagadas || 'No disponible' },
+          { label: 'Valor de la cuota mensual', value: formatCurrency(creditoData.Valor_cuota_mensual) },
+          { label: 'Estado actual del crédito', value: creditoData.estado_credito || 'No disponible' },
+          { label: 'Valor de la mora', value: formatCurrency(creditoData.valor_mora) },
+          { label: 'Cuotas por pagar', value: creditoData.cuotas_por_pagar || 'No disponible' },
+          { label: 'Monto por pagar', value: formatCurrency(creditoData.monto_por_pagar) },
+          { label: 'Pago a capital de la deuda', value: formatCurrency(creditoData.pago_capital_deuda) },
+          { label: 'Intereses', value: formatCurrency(creditoData.intereses) },
+          { label: 'Valor a capitalizar', value: formatCurrency(creditoData.valor_capitalizar) },
         ];
 
-        const formulacionBody = selectedFormulacionProv.map(item => {
-          const providerInfo = getProviderInfo(item.rel_id_prov);
+        const columnWidth = (pageWidth - 2 * margin) / 2;
+        const leftX = margin;
+        const rightX = margin + columnWidth + 10;
+
+        for (let i = 0; i < creditoFields.length; i += 2) {
+          yPosition = checkPageEnd(doc, yPosition, 30);
           
-          // Lógica para determinar el tipo de bien
-          let tipoBien = 'Sin prioridad';
-          if (item.selectionorder) {
-            if (item.selectionorder === 1) {
-              tipoBien = 'Primario';
-            } else if (item.selectionorder >= 2 && item.selectionorder <= 4) {
-              tipoBien = 'Complementario';
-            }
+          const leftField = creditoFields[i];
+          const rightField = creditoFields[i + 1];
+
+          doc.setFont(undefined, 'bold');
+          doc.text(`${leftField.label}:`, leftX, yPosition);
+          doc.setFont(undefined, 'normal');
+          const leftValueLines = doc.splitTextToSize(leftField.value, columnWidth);
+          doc.text(leftValueLines, leftX, yPosition + 12);
+
+          let rightValueLines = [];
+          if (rightField) {
+            doc.setFont(undefined, 'bold');
+            doc.text(`${rightField.label}:`, rightX, yPosition);
+            doc.setFont(undefined, 'normal');
+            rightValueLines = doc.splitTextToSize(rightField.value, columnWidth);
+            doc.text(rightValueLines, rightX, yPosition + 12);
           }
+
+          const leftHeight = leftValueLines.length * 12;
+          const rightHeight = rightValueLines.length * 12;
+          yPosition += Math.max(leftHeight, rightHeight) + 15;
+        }
+
+        if (creditoData.justificacion_cobertura_deuda) {
+          yPosition += 10;
+          yPosition = checkPageEnd(doc, yPosition, 30);
+          doc.setFont(undefined, 'bold');
+          doc.text("Justificación cobertura de deuda comercial financiera:", margin, yPosition);
+          yPosition += 12;
+          doc.setFont(undefined, 'normal');
+          const justificacionLines = doc.splitTextToSize(creditoData.justificacion_cobertura_deuda, maxLineWidth);
+          yPosition = writeTextWithPageBreak(doc, creditoData.justificacion_cobertura_deuda, margin, yPosition, maxLineWidth, fontSizes.normal);
+          yPosition += 10;
+        }
+      } else {
+        doc.text("No hay datos de crédito registrados.", margin, yPosition);
+        yPosition += 14;
+      }
+      }
+
+      // 6. ARRIENDO (solo si modalidadCapitalizacion es "Pago de canon de arrendamiento")
+      if (modalidadCapitalizacion === 'Pago de canon de arrendamiento') {
+        doc.setFontSize(fontSizes.subtitle);
+        doc.setFont(undefined, 'bold');
+        yPosition += 20;
+        doc.text("Arriendo", pageWidth / 2, yPosition, { align: 'center' });
+
+        doc.setFontSize(fontSizes.normal);
+        doc.setFont(undefined, 'normal');
+        yPosition += 20;
+
+        // Sección de Arriendo
+        if (arriendoData) {
+
+        const arriendoFields = [
+          { label: 'Tipo de persona arrendador', value: arriendoData.arrendador_tipoPersona || 'No disponible' },
+          { label: 'Nombre del arrendador', value: arriendoData.nombreArrendador || 'No disponible' },
+          { label: 'Tipo de documento', value: arriendoData.tipoDocumento || 'No disponible' },
+          { label: 'Número de identificación', value: arriendoData.numeroIdentificacion_arrendador || 'No disponible' },
+          { label: 'Fecha inicio del contrato', value: formatDate(arriendoData.fechaInicio_contrato) },
+          { label: 'Fecha finalización del contrato', value: formatDate(arriendoData.fechaFinalizacion_contrato) },
+          { label: 'Valor mensual del canon', value: formatCurrency(arriendoData.valorMensual_canon) },
+          { label: 'Meses adeudados', value: arriendoData.mesesAdeudados || 'No disponible' },
+          { label: 'Valor pendiente de pago', value: formatCurrency(arriendoData.valorPendientePago) },
+          { label: 'Valor de intereses por mora', value: formatCurrency(arriendoData.valorInteresesMora) },
+        ];
+
+        const columnWidth = (pageWidth - 2 * margin) / 2;
+        const leftX = margin;
+        const rightX = margin + columnWidth + 10;
+
+        for (let i = 0; i < arriendoFields.length; i += 2) {
+          yPosition = checkPageEnd(doc, yPosition, 30);
           
+          const leftField = arriendoFields[i];
+          const rightField = arriendoFields[i + 1];
+
+          doc.setFont(undefined, 'bold');
+          doc.text(`${leftField.label}:`, leftX, yPosition);
+          doc.setFont(undefined, 'normal');
+          const leftValueLines = doc.splitTextToSize(leftField.value, columnWidth);
+          doc.text(leftValueLines, leftX, yPosition + 12);
+
+          let rightValueLines = [];
+          if (rightField) {
+            doc.setFont(undefined, 'bold');
+            doc.text(`${rightField.label}:`, rightX, yPosition);
+            doc.setFont(undefined, 'normal');
+            rightValueLines = doc.splitTextToSize(rightField.value, columnWidth);
+            doc.text(rightValueLines, rightX, yPosition + 12);
+          }
+
+          const leftHeight = leftValueLines.length * 12;
+          const rightHeight = rightValueLines.length * 12;
+          yPosition += Math.max(leftHeight, rightHeight) + 15;
+        }
+
+        // Tabla de verificaciones
+        yPosition += 20;
+        yPosition = checkPageEnd(doc, yPosition, 50);
+        
+        doc.setFont(undefined, 'bold');
+        doc.text("Verificaciones", margin, yPosition);
+        yPosition += 15;
+        doc.setFont(undefined, 'normal');
+
+        const verificationFields = [
+          { 
+            key: 'contratoAutenticado', 
+            label: '¿El contrato se encuentra debidamente autenticado ante notaría, garantizando la validez jurídica del documento y la verificación de las firmas de las partes intervinientes?' 
+          },
+          { 
+            key: 'verificacionDocumentoidentidad', 
+            label: '¿Se verificó que el documento de identidad o Registro mercantil del arrendador, según corresponda, cumpla con los requisitos establecidos en la guía operativa, entre ellos que, los datos de identificación coincidan con los registrados en el contrato de arrendamiento?' 
+          },
+          { 
+            key: 'documentoVigente', 
+            label: '¿Este documento se encuentra vigente? (no mayor a 60 días)' 
+          },
+          { 
+            key: 'inmuebleCorrespondeDireccion', 
+            label: '¿El inmueble corresponde a la dirección indicada en el contrato?' 
+          },
+          { 
+            key: 'propietarioInmueble', 
+            label: '¿El propietario del inmueble coincide con el arrendador?' 
+          },
+          { 
+            key: 'titularCuenta', 
+            label: '¿El titular de la cuenta es del arrendador o inmobiliaria autorizada en el contrato?' 
+          },
+          { 
+            key: 'certificadoDeuda', 
+            label: '¿El certificado de deuda emitido por concepto de arrendamiento cumple con la totalidad de los requisitos formales y de contenido establecidos en la guía operativa vigente, garantizando su validez y conformidad con los lineamientos institucionales?' 
+          }
+        ];
+
+        const verificationHeaders = [
+          { header: 'Ítem', dataKey: 'item' },
+          { header: 'Sí', dataKey: 'si' },
+          { header: 'No', dataKey: 'no' }
+        ];
+
+        const verificationBody = verificationFields.map(field => {
+          const value = arriendoData[field.key] || '';
           return {
-            tipoBien: tipoBien,
-            bienSeleccionado: providerInfo.elemento,
-            descripcionBien: providerInfo.descripcion,
-            cantidad: item.Cantidad ? item.Cantidad.toString() : '1',
-            descripcionDimensiones: item["Descripcion dimensiones"] || 'No disponible',
-            justificacion: item.Justificacion || 'No disponible',
+            item: field.label,
+            si: value === 'Si' ? 'X' : '',
+            no: value === 'No' ? 'X' : ''
           };
         });
 
         doc.autoTable({
           startY: yPosition,
-          head: [formulacionHeaders.map(col => col.header)],
-          body: formulacionBody.map(row => formulacionHeaders.map(col => row[col.dataKey])),
+          head: [verificationHeaders.map(col => col.header)],
+          body: verificationBody.map(row => [
+            row.item,
+            row.si,
+            row.no
+          ]),
           theme: 'striped',
           styles: { 
             fontSize: fontSizes.normal, 
@@ -850,17 +1131,14 @@ export default function GenerarFichaTabG3({ id }) {
             fillColor: tableColor, 
             textColor: [255, 255, 255], 
             fontStyle: 'bold',
-            halign: 'center', // Centrado horizontal
-            valign: 'middle'  // Centrado vertical
+            halign: 'center',
+            valign: 'middle'
           },
           margin: { left: margin, right: margin },
           columnStyles: {
-            0: { halign: 'center', cellWidth: 58 }, // Tipo de bien
-            1: { halign: 'left', cellWidth: 85 },   // Bien seleccionado
-            2: { halign: 'left', cellWidth: 110 },  // Descripción del bien
-            3: { halign: 'center', cellWidth: 60 }, // Cantidad
-            4: { halign: 'left', cellWidth: 100 },  // Descripción dimensiones
-            5: { halign: 'left', cellWidth: 100 }   // Justificación
+            0: { halign: 'left', cellWidth: 'auto' }, // Ítem
+            1: { halign: 'center', cellWidth: 50 },   // Sí
+            2: { halign: 'center', cellWidth: 50 }    // No
           },
           didDrawPage: (data) => {
             yPosition = data.cursor.y;
@@ -868,12 +1146,25 @@ export default function GenerarFichaTabG3({ id }) {
         });
 
         yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
+
+        if (arriendoData.justificacionPagocanon) {
+          yPosition += 10;
+          yPosition = checkPageEnd(doc, yPosition, 30);
+          doc.setFont(undefined, 'bold');
+          doc.text("Justificación pago canon de arrendamiento:", margin, yPosition);
+          yPosition += 12;
+          doc.setFont(undefined, 'normal');
+          const justificacionLines = doc.splitTextToSize(arriendoData.justificacionPagocanon, maxLineWidth);
+          yPosition = writeTextWithPageBreak(doc, arriendoData.justificacionPagocanon, margin, yPosition, maxLineWidth, fontSizes.normal);
+          yPosition += 10;
+        }
       } else {
-        doc.text("No hay registros de formulación de inversión.", margin, yPosition);
+        doc.text("No hay datos de arriendo registrados.", margin, yPosition);
         yPosition += 14;
       }
+      }
 
-      // 6. RESUMEN DE LA INVERSIÓN (OCULTO)
+      // 7. RESUMEN DE LA INVERSIÓN (OCULTO)
       /*
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
@@ -1041,6 +1332,7 @@ export default function GenerarFichaTabG3({ id }) {
 GenerarFichaTabG3.propTypes = {
   id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
 };
+
 
 
 
