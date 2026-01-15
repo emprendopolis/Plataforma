@@ -20,6 +20,7 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
 
   const fetchFilesFromBackend = async () => {
     try {
@@ -94,6 +95,45 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    const fetchPriorizacion = async () => {
+      if (!id) return;
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const response = await axios.get(
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setPriorizacionCapitalizacion(response.data.record?.['Priorizacion capitalizacion'] ?? null);
+      } catch (error) {
+        setPriorizacionCapitalizacion(null);
+      }
+    };
+    fetchPriorizacion();
+  }, [id]);
+
+  // Función para obtener el límite de inversión según el grupo
+  const getLimiteInversion = () => {
+    if (priorizacionCapitalizacion === 'Grupo 3') {
+      return 3277714; // 3.277.714
+    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+      return 3000000; // 3.000.000
+    }
+    // Por defecto, usar el límite del Grupo 2
+    return 3000000;
+  };
+
+  // Función para obtener el límite formateado según el grupo
+  const getLimiteInversionFormateado = () => {
+    if (priorizacionCapitalizacion === 'Grupo 3') {
+      return '$3.277.714';
+    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+      return '$3.000.000';
+    }
+    return '$3.000.000';
+  };
 
   const handleStatusChange = async (field, status) => {
     const updatedData = { ...data, [field]: status, caracterizacion_id: id };
@@ -251,10 +291,10 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
         <div className="alert alert-danger">{error}</div>
       ) : (
         <div>
-          {/* Mensaje de advertencia cuando el total supera $3.000.000 */}
-          {totalInversionNumerico > 3000000 && (
+          {/* Mensaje de advertencia cuando el total supera el límite según el grupo */}
+          {totalInversionNumerico > getLimiteInversion() && (
             <div className="alert alert-warning mb-3">
-              <strong>Advertencia:</strong> Los botones de aprobar están deshabilitados porque el total de inversión ($ {totalInversionNumerico.toLocaleString('es-CO')}) supera el límite de $3.000.000.
+              <strong>Advertencia:</strong> Los botones de aprobar están deshabilitados porque el total de inversión ($ {totalInversionNumerico.toLocaleString('es-CO')}) supera el límite de {getLimiteInversionFormateado()}.
             </div>
           )}
 
@@ -264,8 +304,8 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
               <button
                 className={`btn ${data['Aprobación asesor'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación asesor', true)}
-                disabled={localStorage.getItem('role_id') === '3' || totalInversionNumerico > 3000000}
-                title={totalInversionNumerico > 3000000 ? 'No se puede aprobar: el total de inversión supera $3.000.000' : ''}
+                disabled={localStorage.getItem('role_id') === '3' || totalInversionNumerico > getLimiteInversion()}
+                title={totalInversionNumerico > getLimiteInversion() ? `No se puede aprobar: el total de inversión supera ${getLimiteInversionFormateado()}` : ''}
               >
                 Aprobar
               </button>
@@ -285,8 +325,8 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
               <button
                 className={`btn ${data['Aprobación propaís'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación propaís', true)}
-                disabled={localStorage.getItem('role_id') === '3' || totalInversionNumerico > 3000000}
-                title={totalInversionNumerico > 3000000 ? 'No se puede aprobar: el total de inversión supera $3.000.000' : ''}
+                disabled={localStorage.getItem('role_id') === '3' || totalInversionNumerico > getLimiteInversion()}
+                title={totalInversionNumerico > getLimiteInversion() ? `No se puede aprobar: el total de inversión supera ${getLimiteInversionFormateado()}` : ''}
               >
                 Aprobar
               </button>

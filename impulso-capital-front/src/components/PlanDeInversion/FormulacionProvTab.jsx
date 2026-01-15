@@ -228,6 +228,27 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
     fetchPriorizacion();
   }, [id]);
 
+  // Función para obtener el límite de inversión según el grupo
+  const getLimiteInversion = () => {
+    if (priorizacionCapitalizacion === 'Grupo 3') {
+      return 3277714; // 3.277.714
+    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+      return 3000000; // 3.000.000
+    }
+    // Por defecto, usar el límite del Grupo 2
+    return 3000000;
+  };
+
+  // Función para obtener el límite formateado según el grupo
+  const getLimiteInversionFormateado = () => {
+    if (priorizacionCapitalizacion === 'Grupo 3') {
+      return '$ 3.277.714';
+    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+      return '$ 3.000.000';
+    }
+    return '$ 3.000.000';
+  };
+
   const handleRubroChange = (e) => {
     setSelectedRubro(e.target.value);
     setSelectedElemento('');
@@ -887,10 +908,10 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
           </div>
 
           {/* Validación del total de inversión */}
-          {totalInversionNumerico > 3000000 && (
+          {totalInversionNumerico > getLimiteInversion() && (
             <div className="mt-3">
               <p style={{ color: 'red', fontWeight: 'bold', fontSize: '16px' }}>
-                Los bienes seleccionados deben sumar una totalidad menor a $ 3.000.000
+                Los bienes seleccionados deben sumar una totalidad menor a {getLimiteInversionFormateado()}
               </p>
             </div>
           )}
@@ -925,6 +946,8 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                         ? 'Sin asignación de priorización'
                         : priorizacionCapitalizacion === 'Grupo 2'
                         ? '$ 3.000.000'
+                        : priorizacionCapitalizacion === 'Grupo 3'
+                        ? '$ 3.277.714'
                         : priorizacionCapitalizacion === 'Grupo 1'
                         ? 'Entrega de Kit'
                         : 'Sin asignación de priorización'}

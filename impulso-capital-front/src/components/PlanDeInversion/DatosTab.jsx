@@ -56,7 +56,8 @@ export default function DatosTab({ id, onModalidadChange }) {
       'Gastronomía',
       'Calzado - Marroquinería',
       'Artesanías',
-      'Cosmética y belleza'
+      'Cosmética y belleza',
+      'Comercialización, servicios y otros aprobados por el programa'
     ],
     'priorizado': [
       'Si',
