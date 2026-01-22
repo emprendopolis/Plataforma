@@ -19,6 +19,10 @@ export default function AnexosV2Tab({ id }) {
   const [currentField, setCurrentField] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // Estados para condiciones de visibilidad
+  const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
+  const [modalidadCapitalizacion, setModalidadCapitalizacion] = useState(null);
+
   // Nombres de los documentos para mostrar
   const documentNames = {
     // Documentos Primera Visita
@@ -40,7 +44,20 @@ export default function AnexosV2Tab({ id }) {
     acta_causales: 'Acta de causales de inasistencia',
     lista_asistencia: 'GH-F-008 Formato Lista de Asistencia',
     certificado_formacion: 'Certificado de formación',
-    incumplimiento: 'Acta de incumplimiento'
+    incumplimiento: 'Acta de incumplimiento',
+    
+    // Módulo Arriendo
+    contrato_arriendo: 'Contrato arrendamiento',
+    camara_comercio: 'Cámara de comercio',
+    certif_tradicion_libertad: 'Certificado de tradición y libertad',
+    certificado_deuda_arriendo: 'Certificado de deuda',
+    certificacion_banco_arriendo: 'Certificación bancaria',
+    tipo_cc_ce: 'Tipo documento',
+    cuenta_de_cobro: 'Cuenta de cobro',
+    
+    // Módulo Deuda
+    certificado_deuda_deuda: 'Certificado de deuda',
+    certificacion_banco_deuda: 'Certificación bancaria'
   };
 
   const fetchData = async () => {
@@ -88,6 +105,50 @@ export default function AnexosV2Tab({ id }) {
 
   useEffect(() => {
     fetchData();
+  }, [id]);
+
+  // Obtener Priorizacion capitalizacion y modalidadCapitalizacion
+  useEffect(() => {
+    const fetchPriorizacionYModalidad = async () => {
+      if (!id) return;
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // Obtener Priorizacion capitalizacion desde inscription_caracterizacion
+        const caracterizacionResponse = await axios.get(
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setPriorizacionCapitalizacion(
+          caracterizacionResponse.data.record?.['Priorizacion capitalizacion'] ?? null
+        );
+
+        // Obtener modalidadCapitalizacion desde pi_datos
+        try {
+          const datosResponse = await axios.get(
+            `${config.urls.inscriptions.base}/pi/tables/pi_datos/records?caracterizacion_id=${id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          if (datosResponse.data.length > 0) {
+            setModalidadCapitalizacion(
+              datosResponse.data[0].modalidadCapitalizacion || null
+            );
+          } else {
+            setModalidadCapitalizacion(null);
+          }
+        } catch (error) {
+          console.error('Error obteniendo modalidadCapitalizacion:', error);
+          setModalidadCapitalizacion(null);
+        }
+      } catch (error) {
+        console.error('Error obteniendo Priorizacion capitalizacion:', error);
+        setPriorizacionCapitalizacion(null);
+      }
+    };
+
+    fetchPriorizacionYModalidad();
   }, [id]);
 
   const handleFileChange = (e) => {
@@ -310,6 +371,36 @@ export default function AnexosV2Tab({ id }) {
     'incumplimiento'
   ];
 
+  const arriendoFields = [
+    'contrato_arriendo',
+    'camara_comercio',
+    'certif_tradicion_libertad',
+    'certificado_deuda_arriendo',
+    'certificacion_banco_arriendo',
+    'tipo_cc_ce',
+    'cuenta_de_cobro'
+  ];
+
+  const deudaFields = [
+    'certificado_deuda_deuda',
+    'certificacion_banco_deuda'
+  ];
+
+  // Funciones para determinar visibilidad de módulos
+  const shouldShowArriendo = () => {
+    return (
+      priorizacionCapitalizacion === 'Grupo 3' &&
+      modalidadCapitalizacion === 'Pago de canon de arrendamiento'
+    );
+  };
+
+  const shouldShowDeuda = () => {
+    return (
+      priorizacionCapitalizacion === 'Grupo 3' &&
+      modalidadCapitalizacion === 'Cobertura de deuda comercial financiera'
+    );
+  };
+
   return (
     <div>
       {loading ? (
@@ -326,6 +417,28 @@ export default function AnexosV2Tab({ id }) {
               renderDocumentItem(fieldName)
             )}
           </div>
+
+          {/* Sección Módulo Arriendo - Solo visible si se cumplen las condiciones */}
+          {shouldShowArriendo() && (
+            <div className="card p-4 mb-4">
+              <h5 className="mb-4" style={{ fontWeight: 'bold' }}>Módulo Arriendo</h5>
+              
+              {arriendoFields.map(fieldName => 
+                renderDocumentItem(fieldName)
+              )}
+            </div>
+          )}
+
+          {/* Sección Módulo Crédito/Deuda - Solo visible si se cumplen las condiciones */}
+          {shouldShowDeuda() && (
+            <div className="card p-4 mb-4">
+              <h5 className="mb-4" style={{ fontWeight: 'bold' }}>Módulo Crédito/Deuda</h5>
+              
+              {deudaFields.map(fieldName => 
+                renderDocumentItem(fieldName)
+              )}
+            </div>
+          )}
 
           {/* Sección Cierre de Ruta */}
           <div className="card p-4">

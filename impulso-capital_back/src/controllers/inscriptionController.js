@@ -3643,13 +3643,19 @@ exports.uploadAnexosV2File = async (req, res) => {
     let gcsPath;
     try {
       console.log('🔄 Generando ruta GCS...');
-      const { generateVisita1Path, generateCierreRutaPath } = require('../utils/gcs');
+      const { generateVisita1Path, generateCierreRutaPath, generateArriendoPath, generateDeudaPath } = require('../utils/gcs');
       
       // Determinar qué función usar según el campo
       const cierreRutaFields = ['acta_visita_2', 'recibo_satisfaccion', 'evidencia_fotografica_2', 'facturas', 'acta_comite', 'bienes_aprobados', 'acta_causales', 'lista_asistencia', 'certificado_formacion', 'incumplimiento'];
+      const arriendoFields = ['contrato_arriendo', 'camara_comercio', 'certif_tradicion_libertad', 'certificado_deuda_arriendo', 'certificacion_banco_arriendo', 'tipo_cc_ce', 'cuenta_de_cobro'];
+      const deudaFields = ['certificado_deuda_deuda', 'certificacion_banco_deuda'];
       
       if (cierreRutaFields.includes(fieldName)) {
         gcsPath = await generateCierreRutaPath(caracterizacion_id, fieldName, finalFileName);
+      } else if (arriendoFields.includes(fieldName)) {
+        gcsPath = await generateArriendoPath(caracterizacion_id, fieldName, finalFileName);
+      } else if (deudaFields.includes(fieldName)) {
+        gcsPath = await generateDeudaPath(caracterizacion_id, fieldName, finalFileName);
       } else {
         gcsPath = await generateVisita1Path(caracterizacion_id, fieldName, finalFileName);
       }

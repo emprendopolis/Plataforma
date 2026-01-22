@@ -35,7 +35,20 @@ const DOCUMENT_CODES = {
   'acta_causales': 'ACI',
   'lista_asistencia': 'List_Asist',
   'certificado_formacion': 'Cert form',
-  'incumplimiento': 'AI'
+  'incumplimiento': 'AI',
+  
+  // Módulo Arriendo (pi_anexosv2)
+  'contrato_arriendo': 'Cto Arrend',
+  'camara_comercio': 'CCB',
+  'certif_tradicion_libertad': 'CTL',
+  'certificado_deuda_arriendo': 'Cert Deuda A',
+  'certificacion_banco_arriendo': 'Cert Bcaria A',
+  'tipo_cc_ce': 'tipo documento',
+  'cuenta_de_cobro': 'CXC',
+  
+  // Módulo Deuda (pi_anexosv2)
+  'certificado_deuda_deuda': 'Cert Deuda D',
+  'certificacion_banco_deuda': 'Cert Bcaria D'
 };
 
 /**
@@ -235,6 +248,86 @@ async function generateCierreRutaPath(caracterizacion_id, fieldName, fileName) {
 }
 
 /**
+ * Genera la ruta de GCS para archivos del Módulo Arriendo
+ * @param {number} caracterizacion_id - ID de caracterización
+ * @param {string} fieldName - Nombre del campo en la base de datos
+ * @param {string} fileName - Nombre del archivo
+ * @returns {Promise<string>} - Ruta completa en GCS
+ */
+async function generateArriendoPath(caracterizacion_id, fieldName, fileName) {
+  console.log('🔍 [generateArriendoPath] Iniciando...');
+  console.log('📋 Parámetros:', { caracterizacion_id, fieldName, fileName });
+  
+  const userData = await getUserData(caracterizacion_id);
+  
+  const documentCode = DOCUMENT_CODES[fieldName];
+  console.log('📄 Código de documento:', documentCode);
+  
+  if (!documentCode) {
+    console.log('❌ Código de documento no definido para:', fieldName);
+    throw new Error(`Código de documento no definido para el campo: ${fieldName}`);
+  }
+  
+  // Extraer la extensión del archivo original
+  const fileExtension = fileName.split('.').pop();
+  console.log('📄 Extensión del archivo:', fileExtension);
+  
+  const basePath = `${userData.cedula}_${userData.nombre}`;
+  const folderPath = `2. Soportes de Visita 1_${userData.grupo}/Documentos soportes PI canon de arrendamiento`;
+  
+  // Generar el nombre base del archivo
+  const baseFileName = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}`;
+  
+  // Generar nombre único
+  const finalFileName = await generateUniqueFileName(basePath, folderPath, baseFileName, fileExtension);
+  
+  const finalPath = `${basePath}/${folderPath}/${finalFileName}`;
+  
+  console.log('✅ [generateArriendoPath] Ruta final generada:', finalPath);
+  return finalPath;
+}
+
+/**
+ * Genera la ruta de GCS para archivos del Módulo Deuda
+ * @param {number} caracterizacion_id - ID de caracterización
+ * @param {string} fieldName - Nombre del campo en la base de datos
+ * @param {string} fileName - Nombre del archivo
+ * @returns {Promise<string>} - Ruta completa en GCS
+ */
+async function generateDeudaPath(caracterizacion_id, fieldName, fileName) {
+  console.log('🔍 [generateDeudaPath] Iniciando...');
+  console.log('📋 Parámetros:', { caracterizacion_id, fieldName, fileName });
+  
+  const userData = await getUserData(caracterizacion_id);
+  
+  const documentCode = DOCUMENT_CODES[fieldName];
+  console.log('📄 Código de documento:', documentCode);
+  
+  if (!documentCode) {
+    console.log('❌ Código de documento no definido para:', fieldName);
+    throw new Error(`Código de documento no definido para el campo: ${fieldName}`);
+  }
+  
+  // Extraer la extensión del archivo original
+  const fileExtension = fileName.split('.').pop();
+  console.log('📄 Extensión del archivo:', fileExtension);
+  
+  const basePath = `${userData.cedula}_${userData.nombre}`;
+  const folderPath = `2. Soportes de Visita 1_${userData.grupo}/Documentos soportes PI cobertura deuda comercial`;
+  
+  // Generar el nombre base del archivo
+  const baseFileName = `${userData.cedula}_${userData.nombre}_${documentCode}_${userData.grupo}`;
+  
+  // Generar nombre único
+  const finalFileName = await generateUniqueFileName(basePath, folderPath, baseFileName, fileExtension);
+  
+  const finalPath = `${basePath}/${folderPath}/${finalFileName}`;
+  
+  console.log('✅ [generateDeudaPath] Ruta final generada:', finalPath);
+  return finalPath;
+}
+
+/**
  * Sube un archivo local a Google Cloud Storage y retorna la ruta.
  * @param {string} filePath - Ruta local del archivo a subir.
  * @param {string} destination - Ruta destino en el bucket (ej: 'inscription_caracterizacion/123/archivo.pdf').
@@ -324,6 +417,8 @@ module.exports = {
   generateVisita1Path,
   generateInicialesPath,
   generateCierreRutaPath,
+  generateArriendoPath,
+  generateDeudaPath,
   getUserData,
   DOCUMENT_CODES,
   DOCUMENT_TYPES
