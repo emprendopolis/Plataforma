@@ -1354,16 +1354,10 @@ exports.updateTableRecord = async (req, res) => {
 exports.updatePiRecord = async (req, res) => {
   const { table_name, record_id } = req.params;
   const updatedData = req.body;
-  const userId = req.user?.id || req.body?.user_id || 0; // Como está protegido por authenticateJWT, req.user debería existir
-
-  console.log('🔍 [updatePiRecord] Iniciando actualización...');
-  console.log('📋 [updatePiRecord] Parámetros recibidos:', { table_name, record_id });
-  console.log('📋 [updatePiRecord] Datos recibidos:', updatedData);
-  console.log('📋 [updatePiRecord] User ID:', userId);
+  const userId = req.user.id; // Como está protegido por authenticateJWT, req.user debería existir
 
   try {
     if (!table_name.startsWith('pi_')) {
-      console.error('❌ [updatePiRecord] Nombre de tabla inválido:', table_name);
       return res.status(400).json({ message: 'Nombre de tabla inválido para este controlador.' });
     }
 
@@ -1371,17 +1365,14 @@ exports.updatePiRecord = async (req, res) => {
     const oldRecordQuery = `
       SELECT * FROM "${table_name}" WHERE id = :record_id
     `;
-    console.log('🔍 [updatePiRecord] Consultando registro existente...');
     const [oldRecord] = await sequelize.query(oldRecordQuery, {
       replacements: { record_id },
       type: sequelize.QueryTypes.SELECT,
     });
 
     if (!oldRecord) {
-      console.error('❌ [updatePiRecord] Registro no encontrado con id:', record_id);
       return res.status(404).json({ message: 'Registro no encontrado' });
     }
-    console.log('✅ [updatePiRecord] Registro encontrado:', oldRecord);
 
     // Obtener columnas válidas
     const fieldsQueryResult = await sequelize.query(
@@ -1392,10 +1383,9 @@ exports.updatePiRecord = async (req, res) => {
       }
     );
     const fields = fieldsQueryResult.map((field) => field.column_name);
-    console.log('📋 [updatePiRecord] Campos válidos en la tabla:', fields);
 
     if (fields.length === 0) {
-      console.error('❌ [updatePiRecord] No se encontraron campos válidos en la tabla:', table_name);
+      console.error('Error: No se encontraron campos válidos en la tabla:', table_name);
       return res.status(500).json({ message: 'No se pudieron obtener los campos de la tabla.' });
     }
 
@@ -1404,23 +1394,11 @@ exports.updatePiRecord = async (req, res) => {
       // Excluir el campo 'id' ya que es la clave primaria y no debe actualizarse
       if (fields.includes(key) && updatedData[key] !== undefined && updatedData[key] !== null && key !== 'id') {
         filteredData[key] = updatedData[key];
-        console.log(`✅ [updatePiRecord] Campo válido agregado: ${key} = ${updatedData[key]}`);
-      } else {
-        console.log(`⚠️ [updatePiRecord] Campo omitido: ${key} (no está en campos válidos o es null/undefined/id)`);
       }
     }
 
-    console.log('📋 [updatePiRecord] Datos filtrados:', filteredData);
-
     if (Object.keys(filteredData).length === 0) {
-      console.error('❌ [updatePiRecord] No se proporcionaron campos válidos para actualizar');
-      console.error('❌ [updatePiRecord] Datos recibidos:', updatedData);
-      console.error('❌ [updatePiRecord] Campos válidos en tabla:', fields);
-      return res.status(400).json({ 
-        message: 'No se proporcionaron campos válidos para actualizar.',
-        receivedData: updatedData,
-        validFields: fields
-      });
+      return res.status(400).json({ message: 'No se proporcionaron campos válidos para actualizar.' });
     }
 
     const fieldNames = Object.keys(filteredData);
@@ -1437,29 +1415,22 @@ exports.updatePiRecord = async (req, res) => {
       RETURNING *
     `;
 
-    console.log('🔍 [updatePiRecord] Query SQL:', query);
-    console.log('🔍 [updatePiRecord] Valores a actualizar:', fieldValues);
-    console.log('🔍 [updatePiRecord] record_id:', record_id);
-
     const [result] = await sequelize.query(query, {
       bind: [...fieldValues, record_id],
       type: sequelize.QueryTypes.UPDATE,
     });
 
     if (result.length === 0) {
-      console.error('❌ [updatePiRecord] Registro no encontrado después de la actualización');
       return res.status(404).json({ message: 'Registro no encontrado después de la actualización.' });
     }
 
     const newRecord = result[0];
-    console.log('✅ [updatePiRecord] Registro actualizado exitosamente:', newRecord);
 
     // Registrar cambios en el historial
     for (const key of fieldNames) {
       const oldValue = oldRecord[key] !== undefined ? oldRecord[key] : null;
       const newValue = newRecord[key] !== undefined ? newRecord[key] : null;
       if (String(oldValue) !== String(newValue)) {
-        console.log(`📝 [updatePiRecord] Registrando cambio en historial: ${key} de "${oldValue}" a "${newValue}"`);
         await insertHistory(
           table_name,
           record_id,
@@ -1473,23 +1444,10 @@ exports.updatePiRecord = async (req, res) => {
       }
     }
 
-    console.log('✅ [updatePiRecord] Actualización completada exitosamente');
     res.status(200).json({ message: 'Registro actualizado con éxito', record: newRecord });
   } catch (error) {
-    console.error('❌ [updatePiRecord] Error actualizando el registro (pi_):', error);
-    console.error('❌ [updatePiRecord] Stack trace:', error.stack);
-    console.error('❌ [updatePiRecord] Detalles:', {
-      table_name,
-      record_id,
-      updatedData,
-      errorMessage: error.message,
-      errorName: error.name
-    });
-    res.status(500).json({ 
-      message: 'Error actualizando el registro', 
-      error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    console.error('Error actualizando el registro (pi_):', error);
+    res.status(500).json({ message: 'Error actualizando el registro', error: error.message });
   }
 };
 

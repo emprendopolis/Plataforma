@@ -201,40 +201,18 @@ export default function AnexosV2Tab({ id }) {
 
       // Obtener la URL del archivo desde la respuesta del backend
       const fileUrl = uploadResponse.data.url;
-      console.log('🔍 [handleFileUpload] URL del archivo recibida:', fileUrl);
-      console.log('🔍 [handleFileUpload] Campo actual:', currentField);
-      console.log('🔍 [handleFileUpload] data.id:', data.id);
-      console.log('🔍 [handleFileUpload] data completo:', data);
-
-      // Verificar que data.id exista antes de actualizar
-      if (!data.id) {
-        console.error('❌ [handleFileUpload] Error: data.id no está definido. Recargando datos...');
-        await fetchData();
-        // Intentar obtener el id nuevamente después de recargar
-        if (!data.id) {
-          console.error('❌ [handleFileUpload] Error: No se pudo obtener el ID del registro después de recargar');
-          alert('Error: No se pudo obtener el ID del registro. Por favor, recarga la página.');
-          return;
-        }
-        console.log('✅ [handleFileUpload] data.id obtenido después de recargar:', data.id);
-      }
 
       // Actualizar el campo en la base de datos con la URL del archivo
       const updateData = {
         [currentField]: fileUrl
       };
-      console.log('🔍 [handleFileUpload] Datos a actualizar:', updateData);
 
       // Usar la ruta correcta para tablas pi_
       const updateUrl = tableName.startsWith('pi_') 
         ? `${config.urls.inscriptions.tables.replace('/tables', '/pi/tables')}/${tableName}/record/${data.id}`
         : `${config.urls.inscriptions.tables}/${tableName}/record/${data.id}`;
-      
-      console.log('🔍 [handleFileUpload] URL de actualización:', updateUrl);
-      console.log('🔍 [handleFileUpload] tableName:', tableName);
-      console.log('🔍 [handleFileUpload] config.urls.inscriptions.tables:', config.urls.inscriptions.tables);
 
-      const updateResponse = await axios.put(
+      await axios.put(
         updateUrl,
         updateData,
         {
@@ -245,28 +223,12 @@ export default function AnexosV2Tab({ id }) {
         }
       );
 
-      console.log('✅ [handleFileUpload] Respuesta de actualización:', updateResponse.data);
-
       alert("Archivo subido exitosamente");
       await fetchData();
       closeModal();
     } catch (error) {
-      console.error('❌ [handleFileUpload] Error subiendo el archivo:', error);
-      console.error('❌ [handleFileUpload] Detalles del error:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data,
-        }
-      });
-      const errorMessage = error.response?.data?.message || error.message || 'Error desconocido';
-      console.error('❌ [handleFileUpload] Mensaje de error:', errorMessage);
-      alert(`Error subiendo el archivo: ${errorMessage}`);
-      setError(`Error subiendo el archivo: ${errorMessage}`);
+      console.error('Error subiendo el archivo:', error);
+      setError('Error subiendo el archivo');
     }
   };
 
