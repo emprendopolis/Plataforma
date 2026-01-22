@@ -48,7 +48,7 @@ const DOCUMENT_CODES = {
   
   // Módulo Deuda (pi_anexosv2)
   'certificado_deuda_deuda': 'Cert Deuda D',
-  'certificacion_banco_deuda': 'Cert Bcaria D'
+  'certificado_banco_deuda': 'Cert Bcaria D'
 };
 
 /**

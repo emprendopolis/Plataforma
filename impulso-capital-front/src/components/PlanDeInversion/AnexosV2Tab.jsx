@@ -57,7 +57,7 @@ export default function AnexosV2Tab({ id }) {
     
     // Módulo Deuda
     certificado_deuda_deuda: 'Certificado de deuda',
-    certificacion_banco_deuda: 'Certificación bancaria'
+    certificado_banco_deuda: 'Certificación bancaria'
   };
 
   const fetchData = async () => {
@@ -421,7 +421,7 @@ export default function AnexosV2Tab({ id }) {
 
   const deudaFields = [
     'certificado_deuda_deuda',
-    'certificacion_banco_deuda'
+    'certificado_banco_deuda'
   ];
 
   // Funciones para determinar visibilidad de módulos
