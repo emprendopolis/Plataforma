@@ -930,7 +930,7 @@ export default function GenerarFichaTabG3({ id }) {
 
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
-      yPosition += 20;
+      yPosition += 25;
 
       // Sección de Crédito
       if (creditoData) {
@@ -979,7 +979,7 @@ export default function GenerarFichaTabG3({ id }) {
 
           const leftHeight = leftValueLines.length * 12;
           const rightHeight = rightValueLines.length * 12;
-          yPosition += Math.max(leftHeight, rightHeight) + 15;
+          yPosition += Math.max(leftHeight, rightHeight) + 20;
         }
 
         if (creditoData.justificacion_cobertura_deuda) {
@@ -1008,7 +1008,7 @@ export default function GenerarFichaTabG3({ id }) {
 
         doc.setFontSize(fontSizes.normal);
         doc.setFont(undefined, 'normal');
-        yPosition += 20;
+        yPosition += 25;
 
         // Sección de Arriendo
         if (arriendoData) {
@@ -1020,10 +1020,13 @@ export default function GenerarFichaTabG3({ id }) {
           { label: 'Número de identificación', value: arriendoData.numeroIdentificacion_arrendador || 'No disponible' },
           { label: 'Fecha inicio del contrato', value: formatDate(arriendoData.fechaInicio_contrato) },
           { label: 'Fecha finalización del contrato', value: formatDate(arriendoData.fechaFinalizacion_contrato) },
-          { label: 'Valor mensual del canon', value: formatCurrency(arriendoData.valorMensual_canon) },
-          { label: 'Meses adeudados', value: arriendoData.mesesAdeudados || 'No disponible' },
-          { label: 'Valor pendiente de pago', value: formatCurrency(arriendoData.valorPendientePago) },
-          { label: 'Valor de intereses por mora', value: formatCurrency(arriendoData.valorInteresesMora) },
+          { label: 'Valor mensual del canon de arrendamiento', value: formatCurrency(arriendoData.valorMensual_canon) },
+          { label: 'Seleccione la finalidad del recurso', value: arriendoData.finalidad_del_recurso || 'No disponible' },
+          { label: 'Cantidad de meses o periodos a pagar vencido', value: arriendoData.mesesAdeudados || 'No disponible' },
+          { label: 'Valor a pagar vencido', value: formatCurrency(arriendoData.valorPendientePago) },
+          { label: 'Cantidad de meses o periodos a pagar anticipado', value: arriendoData.mesesAdeudadosAnticipado || 'No disponible' },
+          { label: 'Valor a pagar anticipado', value: formatCurrency(arriendoData.valorPendientePagoAnticipado) },
+          { label: 'Valor de Intereses generados por la mora', value: formatCurrency(arriendoData.valorInteresesMora) },
         ];
 
         const columnWidth = (pageWidth - 2 * margin) / 2;
@@ -1053,7 +1056,7 @@ export default function GenerarFichaTabG3({ id }) {
 
           const leftHeight = leftValueLines.length * 12;
           const rightHeight = rightValueLines.length * 12;
-          yPosition += Math.max(leftHeight, rightHeight) + 15;
+          yPosition += Math.max(leftHeight, rightHeight) + 20;
         }
 
         // Tabla de verificaciones

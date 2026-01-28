@@ -19,9 +19,12 @@ export default function ArriendoTab({ id }) {
     'fechaInicio_contrato': 'Fecha inicio del contrato',
     'fechaFinalizacion_contrato': 'Fecha de finalización del contrato',
     'valorMensual_canon': 'Valor mensual del canon de arrendamiento',
-    'mesesAdeudados': 'Meses o periodos adeudados',
-    'valorPendientePago': 'Valor pendiente de pago',
+    'mesesAdeudados': 'Cantidad de meses o periodos a pagar vencido',
+    'valorPendientePago': 'Valor a pagar vencido',
+    'mesesAdeudadosAnticipado': 'Cantidad de meses o periodos a pagar anticipado',
+    'valorPendientePagoAnticipado': 'Valor a pagar anticipado',
     'valorInteresesMora': 'Valor de Intereses generados por la mora',
+    'finalidad_del_recurso': 'Seleccione la finalidad del recurso',
     'contratoAutenticado': '¿El contrato se encuentra debidamente autenticado ante notaría, garantizando la validez jurídica del documento y la verificación de las firmas de las partes intervinientes?',
     'verificacionDocumentoidentidad': '¿Se verificó que el documento de identidad o Registro mercantil del arrendador, según corresponda, cumpla con los requisitos establecidos en la guía operativa, entre ellos que, los datos de identificación coincidan con los registrados en el contrato de arrendamiento?',
     'documentoVigente': '¿Este documento se encuentra vigente? (no mayor a 60 días)',
@@ -35,13 +38,15 @@ export default function ArriendoTab({ id }) {
   // Opciones para los campos de selección
   const fieldOptions = {
     'arrendador_tipoPersona': ['Natural', 'Jurídica', 'Inmobiliaria'],
-    'tipoDocumento': ['CC', 'CE']
+    'tipoDocumento': ['CC', 'CE'],
+    'finalidad_del_recurso': ['Vencido', 'Anticipado', 'Vencido y Anticipado']
   };
 
   // Campos que deben tener formato de moneda (sin decimales, con $)
   const currencyFields = [
     'valorMensual_canon',
     'valorPendientePago',
+    'valorPendientePagoAnticipado',
     'valorInteresesMora'
   ];
 
@@ -249,8 +254,11 @@ export default function ArriendoTab({ id }) {
     'fechaInicio_contrato',
     'fechaFinalizacion_contrato',
     'valorMensual_canon',
+    'finalidad_del_recurso',
     'mesesAdeudados',
     'valorPendientePago',
+    'mesesAdeudadosAnticipado',
+    'valorPendientePagoAnticipado',
     'valorInteresesMora'
   ];
 
@@ -380,7 +388,7 @@ export default function ArriendoTab({ id }) {
                   }}
                   disabled={role === '3'}
                 />
-              ) : fieldName === 'mesesAdeudados' ? (
+              ) : fieldName === 'mesesAdeudados' || fieldName === 'mesesAdeudadosAnticipado' ? (
                 <input
                   type="number"
                   name={fieldName}
