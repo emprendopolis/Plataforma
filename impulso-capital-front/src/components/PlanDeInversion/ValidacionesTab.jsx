@@ -117,7 +117,7 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
   // Función para obtener el límite de inversión según el grupo
   const getLimiteInversion = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
-      return 3277714; // 3.277.714
+      return 3227714; // 3.227.714
     } else if (priorizacionCapitalizacion === 'Grupo 2') {
       return 3000000; // 3.000.000
     }
@@ -128,7 +128,7 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
   // Función para obtener el límite formateado según el grupo
   const getLimiteInversionFormateado = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
-      return '$3.277.714';
+      return '$3.227.714';
     } else if (priorizacionCapitalizacion === 'Grupo 2') {
       return '$3.000.000';
     }

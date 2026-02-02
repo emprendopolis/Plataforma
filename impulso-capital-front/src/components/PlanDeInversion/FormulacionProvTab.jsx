@@ -231,7 +231,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
   // Función para obtener el límite de inversión según el grupo
   const getLimiteInversion = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
-      return 3277714; // 3.277.714
+      return 3227714; // 3.227.714
     } else if (priorizacionCapitalizacion === 'Grupo 2') {
       return 3000000; // 3.000.000
     }
@@ -242,7 +242,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
   // Función para obtener el límite formateado según el grupo
   const getLimiteInversionFormateado = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
-      return '$ 3.277.714';
+      return '$ 3.227.714';
     } else if (priorizacionCapitalizacion === 'Grupo 2') {
       return '$ 3.000.000';
     }
@@ -947,7 +947,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                         : priorizacionCapitalizacion === 'Grupo 2'
                         ? '$ 3.000.000'
                         : priorizacionCapitalizacion === 'Grupo 3'
-                        ? '$ 3.277.714'
+                        ? '$ 3.227.714'
                         : priorizacionCapitalizacion === 'Grupo 1'
                         ? 'Entrega de Kit'
                         : 'Sin asignación de priorización'}
