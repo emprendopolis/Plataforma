@@ -55,6 +55,7 @@ export default function CreditoTab({ id }) {
       'Banco Pichincha',
       'Banco Popular',
       'Banco Serfinanza',
+      'Banco W',
       'BBVA Colombia',
       'Cafam (Caja de Compensación)',
       'Cafam – Fondo de Empleados',
