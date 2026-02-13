@@ -147,6 +147,7 @@ export default function PlanDeInversion() {
         'Arriendo',
         'FormulacionProv',
         'Validaciones',
+        'InfoBancaria',
         'AnexosV2',
         'GenerarFichaG3'
       ];
@@ -167,6 +168,10 @@ export default function PlanDeInversion() {
         
       case 'GenerarFichaG3':
         // Solo mostrar GenerarFichaG3 para Grupo 3
+        return priorizacionCapitalizacion === 'Grupo 3';
+
+      case 'InfoBancaria':
+        // Solo mostrar InfoBancaria para Grupo 3
         return priorizacionCapitalizacion === 'Grupo 3';
         
       case 'Credito':
@@ -368,18 +373,20 @@ export default function PlanDeInversion() {
                   </a>
                 </li>
               )}
-              {/*<li className={`nav-item ${activeTab === 'InfoBancaria' ? 'active' : ''}`}>
-                <a
-                  href="#"
-                  className="nav-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setActiveTab('InfoBancaria');
-                  }}
-                >
-                  <i className="fas fa-credit-card"></i> Información Bancaria
-                </a>
-              </li>*/}
+              {shouldShowTab('InfoBancaria') && (
+                <li className={`nav-item ${activeTab === 'InfoBancaria' ? 'active' : ''}`}>
+                  <a
+                    href="#"
+                    className="nav-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setActiveTab('InfoBancaria');
+                    }}
+                  >
+                    <i className="fas fa-credit-card"></i> Información Bancaria
+                  </a>
+                </li>
+              )}
               {/* <li className={`nav-item ${activeTab === 'Anexos' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -488,7 +495,7 @@ export default function PlanDeInversion() {
             {/* {activeTab === 'Formulacion' && <FormulacionTab id={id} />} */}
             {activeTab === 'FormulacionProv' && shouldShowTab('FormulacionProv') && <FormulacionProvTab id={id} updateTotalInversion={updateTotalInversion} />}
             {activeTab === 'FormulacionKit' && shouldShowTab('FormulacionKit') && <FormulacionKitTab id={id} />}
-            {activeTab === 'InfoBancaria' && <InfoBancariaTab id={id} />}
+            {activeTab === 'InfoBancaria' && shouldShowTab('InfoBancaria') && <InfoBancariaTab id={id} />}
             {/* {activeTab === 'Anexos' && <AnexosTab id={id} />} */}
             {activeTab === 'AnexosV2' && shouldShowTab('AnexosV2') && <AnexosV2Tab id={id} />}
             {activeTab === 'Ejecucion' && <EjecucionTab id={id} />}

@@ -358,164 +358,104 @@ export default function InfoBancariaTab({ id }) {
         <div className="alert alert-danger">{error}</div>
       ) : (
         <div style={{ maxWidth: '600px' }}>
-          <div className="card p-3 mb-3">
+          <div className="card p-3 mb-3 info-bancaria-form-card">
             <h5>Información para el pago</h5>
             
-            <div className="mb-2">
-              <label><strong>Banco</strong></label><br/>
-              <select
-                className="form-select"
-                name="Banco"
-                value={data["Banco"]}
-                onChange={handleChange}
-              >
-                <option value="">Seleccionar...</option>
-                {bancos.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-2">
-              <label><strong>Tipo de cuenta</strong></label><br/>
-              <select
-                className="form-select"
-                name="Tipo de cuenta"
-                value={data["Tipo de cuenta"]}
-                onChange={handleChange}
-              >
-                <option value="">Seleccionar...</option>
-                {tiposCuenta.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-2">
-              <label><strong>Número de cuenta</strong></label><br/>
-              <input
-                type="number"
-                className="form-control"
-                name="Número de cuenta"
-                value={data["Número de cuenta"]}
-                onChange={handleChange}
-                placeholder="Ej: 3582004071"
-              />
-            </div>
-
-            <div className="mb-2">
-              <label><strong>Tipo de documento titular</strong></label><br/>
-              <select
-                className="form-select"
-                name="Tipo de documento titular"
-                value={data["Tipo de documento titular"]}
-                onChange={handleChange}
-              >
-                <option value="">Seleccionar...</option>
-                {tiposDocumento.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mb-2">
-              <label><strong>Número de identificación</strong></label><br/>
-              <input
-                type="number"
-                className="form-control"
-                name="Número de identificación"
-                value={data["Número de identificación"]}
-                onChange={handleChange}
-                placeholder="Ej: 1010239532"
-              />
-            </div>
-
-            <div className="mb-2">
-              <label><strong>Archivos Adjuntos</strong></label><br/>
-              {uploadedFiles && uploadedFiles.length > 0 ? (
-                <ul className="list-group mb-2">
-                  {uploadedFiles.map((f) => (
-                    <li
-                      key={f.id}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        <strong>{f.name}</strong>
-                        <br />
-                        <a
-                          href={f.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Ver archivo
-                        </a>
-                      </div>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleFileDelete(f.id)}
-                      >
-                        Eliminar archivo
-                      </button>
-                    </li>
+            <div className="row g-2">
+              <div className="col-12 info-bancaria-field">
+                <label><strong>Banco</strong></label>
+                <select
+                  className="form-select form-control-info-bancaria"
+                  name="Banco"
+                  value={data["Banco"]}
+                  onChange={handleChange}
+                >
+                  <option value="">Seleccionar...</option>
+                  {bancos.map((b) => (
+                    <option key={b} value={b}>{b}</option>
                   ))}
-                </ul>
-              ) : (
-                <p className="mb-2">No hay archivos adjuntos</p>
-              )}
+                </select>
+              </div>
 
-              {file ? (
-                <form onSubmit={handleFileUpload}>
-                  <div className="form-group mb-2">
-                    <label>Nombre del archivo</label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      value={fileName}
-                      onChange={(e) => setFileName(e.target.value)}
-                      placeholder="Nombre del archivo sin extensión"
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-success btn-sm me-2">
-                    Cargar archivo
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      setFile(null);
-                      setFileName("");
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                </form>
-              ) : (
-                <div className="mt-2">
-                  <input
-                    type="file"
-                    className="form-control form-control-sm"
-                    onChange={handleFileChange}
-                  />
-                </div>
-              )}
+              <div className="col-12 info-bancaria-field">
+                <label><strong>Tipo de cuenta</strong></label>
+                <select
+                  className="form-select form-control-info-bancaria"
+                  name="Tipo de cuenta"
+                  value={data["Tipo de cuenta"]}
+                  onChange={handleChange}
+                >
+                  <option value="">Seleccionar...</option>
+                  {tiposCuenta.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-12 info-bancaria-field">
+                <label><strong>Número de cuenta</strong></label>
+                <input
+                  type="number"
+                  className="form-control form-control-info-bancaria"
+                  name="Número de cuenta"
+                  value={data["Número de cuenta"]}
+                  onChange={handleChange}
+                  onWheel={(e) => e.target.blur()}
+                  placeholder="Ej: 3582004071"
+                />
+              </div>
+
+              <div className="col-12 info-bancaria-field">
+                <label><strong>Tipo de documento titular</strong></label>
+                <select
+                  className="form-select form-control-info-bancaria"
+                  name="Tipo de documento titular"
+                  value={data["Tipo de documento titular"]}
+                  onChange={handleChange}
+                >
+                  <option value="">Seleccionar...</option>
+                  {tiposDocumento.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-12 info-bancaria-field">
+                <label><strong>Número de identificación</strong></label>
+                <input
+                  type="number"
+                  className="form-control form-control-info-bancaria"
+                  name="Número de identificación"
+                  value={data["Número de identificación"]}
+                  onChange={handleChange}
+                  onWheel={(e) => e.target.blur()}
+                  placeholder="Ej: 1010239532"
+                />
+              </div>
             </div>
 
-            <div className="d-flex justify-content-between mt-4">
-              <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
+            {/* Apartado Archivos Adjuntos oculto
+            <div className="mt-3 mb-2">
+              <label><strong>Archivos Adjuntos</strong></label>
+              ...
+            </div>
+            */}
+
+            <div className="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2 info-bancaria-buttons">
+              <button type="button" className="btn btn-secondary btn-sm info-bancaria-btn" onClick={handleCancel}>
                 Cancelar
               </button>
-              <div>
-                {/* Botón para ver historial de cambios */}
+              <div className="d-flex align-items-center flex-shrink-0" style={{ gap: '0.75rem' }}>
                 {recordId && (
                   <button
                     type="button"
-                    className="btn btn-info btn-sm me-2 btn-historial-right"
+                    className="btn btn-info btn-sm info-bancaria-btn"
                     onClick={handleOpenHistoryModal}
                   >
                     Ver Historial de Cambios
                   </button>
                 )}
-                <button className="btn btn-primary btn-sm" onClick={handleSave}>
+                <button type="button" className="btn btn-primary btn-sm info-bancaria-btn" onClick={handleSave}>
                   Guardar
                 </button>
               </div>
