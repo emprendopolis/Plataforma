@@ -1022,11 +1022,12 @@ export default function GenerarFichaTabG3({ id }) {
           { label: 'Fecha finalización del contrato', value: formatDate(arriendoData.fechaFinalizacion_contrato) },
           { label: 'Valor mensual del canon de arrendamiento', value: formatCurrency(arriendoData.valorMensual_canon) },
           { label: 'Seleccione la finalidad del recurso', value: arriendoData.finalidad_del_recurso || 'No disponible' },
-          { label: 'Cantidad de meses o periodos a pagar vencido', value: arriendoData.mesesAdeudados || 'No disponible' },
+          { label: 'Cantidad de meses o periodos a pagar vencido', value: arriendoData.mesesAdeudados != null && arriendoData.mesesAdeudados !== '' ? Number(arriendoData.mesesAdeudados).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'No disponible' },
           { label: 'Valor a pagar vencido', value: formatCurrency(arriendoData.valorPendientePago) },
-          { label: 'Cantidad de meses o periodos a pagar anticipado', value: arriendoData.mesesAdeudadosAnticipado || 'No disponible' },
+          { label: 'Cantidad de meses o periodos a pagar anticipado', value: arriendoData.mesesAdeudadosAnticipado != null && arriendoData.mesesAdeudadosAnticipado !== '' ? Number(arriendoData.mesesAdeudadosAnticipado).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'No disponible' },
           { label: 'Valor a pagar anticipado', value: formatCurrency(arriendoData.valorPendientePagoAnticipado) },
           { label: 'Valor de Intereses generados por la mora', value: formatCurrency(arriendoData.valorInteresesMora) },
+          { label: 'Valor total a pagar', value: formatCurrency(arriendoData.valorTotalaPagar != null && arriendoData.valorTotalaPagar !== '' ? arriendoData.valorTotalaPagar : (parseInt(arriendoData.valorPendientePago || 0, 10) || 0) + (parseInt(arriendoData.valorPendientePagoAnticipado || 0, 10) || 0)) },
         ];
 
         const columnWidth = (pageWidth - 2 * margin) / 2;

@@ -10,6 +10,9 @@ export default function ArriendoTab({ id }) {
   const [recordId, setRecordId] = useState(null);
   const [error, setError] = useState(null);
 
+  // Valor máximo permitido para la suma (valor a pagar vencido + valor a pagar anticipado)
+  const VALOR_MAXIMO_TOTAL = 3227714;
+
   // Mapeo de nombres de campos para mostrar etiquetas más amigables
   const fieldNameMapping = {
     'arrendador_tipoPersona': 'Arrendador: tipo de persona',
@@ -24,6 +27,7 @@ export default function ArriendoTab({ id }) {
     'mesesAdeudadosAnticipado': 'Cantidad de meses o periodos a pagar anticipado',
     'valorPendientePagoAnticipado': 'Valor a pagar anticipado',
     'valorInteresesMora': 'Valor de Intereses generados por la mora',
+    'valorTotalaPagar': 'Valor total a pagar',
     'finalidad_del_recurso': 'Seleccione la finalidad del recurso',
     'contratoAutenticado': '¿El contrato se encuentra debidamente autenticado ante notaría, garantizando la validez jurídica del documento y la verificación de las firmas de las partes intervinientes?',
     'verificacionDocumentoidentidad': '¿Se verificó que el documento de identidad o Registro mercantil del arrendador, según corresponda, cumpla con los requisitos establecidos en la guía operativa, entre ellos que, los datos de identificación coincidan con los registrados en el contrato de arrendamiento?',
@@ -215,6 +219,27 @@ export default function ArriendoTab({ id }) {
         }
       });
 
+      // Calcular cantidad de meses o periodos a pagar vencido y anticipado (valor a pagar / valor mensual del canon), 2 decimales
+      const valorVencido = parseInt(recordData.valorPendientePago || '0', 10) || 0;
+      const valorAnticipado = parseInt(recordData.valorPendientePagoAnticipado || '0', 10) || 0;
+      const valorCanon = parseInt(recordData.valorMensual_canon || '0', 10) || 0;
+      recordData.mesesAdeudados = valorCanon > 0
+        ? parseFloat((valorVencido / valorCanon).toFixed(2))
+        : null;
+      recordData.mesesAdeudadosAnticipado = valorCanon > 0
+        ? parseFloat((valorAnticipado / valorCanon).toFixed(2))
+        : null;
+
+      // Calcular valor total a pagar (vencido + anticipado) y validar tope máximo
+      const valorTotalaPagar = valorVencido + valorAnticipado;
+      recordData.valorTotalaPagar = valorTotalaPagar;
+
+      // Permitir guardar solo cuando el valor total es exactamente igual a 3227714
+      if (valorTotalaPagar !== VALOR_MAXIMO_TOTAL) {
+        alert(`No se puede guardar: el valor total a pagar debe ser exactamente $${VALOR_MAXIMO_TOTAL.toLocaleString('es-CO')}. Valor actual: $${valorTotalaPagar.toLocaleString('es-CO')}.`);
+        return;
+      }
+
       if (recordId) {
         // Actualizar registro existente
         await axios.put(
@@ -259,8 +284,24 @@ export default function ArriendoTab({ id }) {
     'valorPendientePago',
     'mesesAdeudadosAnticipado',
     'valorPendientePagoAnticipado',
-    'valorInteresesMora'
+    'valorInteresesMora',
+    'valorTotalaPagar'
   ];
+
+  // Valor total a pagar (suma de vencido + anticipado) para mostrar en el campo calculado
+  const valorTotalaPagarCalculado = (parseInt(parseCurrency(data.valorPendientePago) || '0', 10) || 0) + (parseInt(parseCurrency(data.valorPendientePagoAnticipado) || '0', 10) || 0);
+
+  // Cantidad de meses o periodos a pagar vencido (calculado: Valor a pagar vencido / Valor mensual del canon), con 2 decimales
+  const valorPendientePagoNum = parseInt(parseCurrency(data.valorPendientePago) || '0', 10) || 0;
+  const valorPendientePagoAnticipadoNum = parseInt(parseCurrency(data.valorPendientePagoAnticipado) || '0', 10) || 0;
+  const valorMensualCanonNum = parseInt(parseCurrency(data.valorMensual_canon) || '0', 10) || 0;
+  const mesesAdeudadosCalculado = valorMensualCanonNum > 0
+    ? (valorPendientePagoNum / valorMensualCanonNum).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
+  // Cantidad de meses o periodos a pagar anticipado (calculado: Valor a pagar anticipado / Valor mensual del canon), con 2 decimales
+  const mesesAdeudadosAnticipadoCalculado = valorMensualCanonNum > 0
+    ? (valorPendientePagoAnticipadoNum / valorMensualCanonNum).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '';
 
   if (loading) {
     return (
@@ -388,19 +429,44 @@ export default function ArriendoTab({ id }) {
                   }}
                   disabled={role === '3'}
                 />
-              ) : fieldName === 'mesesAdeudados' || fieldName === 'mesesAdeudadosAnticipado' ? (
+              ) : fieldName === 'valorTotalaPagar' ? (
                 <input
-                  type="number"
-                  name={fieldName}
+                  type="text"
+                  name="valorTotalaPagar"
                   className="form-control"
-                  value={data[fieldName] || ''}
-                  onChange={handleChange}
-                  min="0"
+                  value={formatCurrency(valorTotalaPagarCalculado)}
+                  readOnly
                   style={{
                     width: '100%',
-                    minHeight: '40px'
+                    minHeight: '40px',
+                    backgroundColor: 'var(--bs-secondary-bg, #e9ecef)'
                   }}
-                  disabled={role === '3'}
+                />
+              ) : fieldName === 'mesesAdeudados' ? (
+                <input
+                  type="text"
+                  name="mesesAdeudados"
+                  className="form-control"
+                  value={mesesAdeudadosCalculado}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    minHeight: '40px',
+                    backgroundColor: 'var(--bs-secondary-bg, #e9ecef)'
+                  }}
+                />
+              ) : fieldName === 'mesesAdeudadosAnticipado' ? (
+                <input
+                  type="text"
+                  name="mesesAdeudadosAnticipado"
+                  className="form-control"
+                  value={mesesAdeudadosAnticipadoCalculado}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    minHeight: '40px',
+                    backgroundColor: 'var(--bs-secondary-bg, #e9ecef)'
+                  }}
                 />
               ) : (
                 <input
