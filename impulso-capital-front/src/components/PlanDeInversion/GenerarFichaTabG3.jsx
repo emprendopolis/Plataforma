@@ -810,6 +810,18 @@ export default function GenerarFichaTabG3({ id }) {
         return dateStr;
       };
 
+      // Formato moneda con 2 decimales para sección Arriendo (ej. $100.000,20)
+      const parseArriendoNum = (v) => {
+        if (v == null || v === '') return NaN;
+        const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));
+        return Number.isNaN(n) ? NaN : n;
+      };
+      const formatCurrencyArriendo = (value) => {
+        const num = parseArriendoNum(value);
+        if (Number.isNaN(num)) return 'No disponible';
+        return `$${num.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      };
+
       // 4. FORMULACIÓN CON PROVEEDORES (solo si modalidadCapitalizacion es "Proveeduría de bienes")
       if (modalidadCapitalizacion === 'Proveeduría de bienes') {
         doc.setFontSize(fontSizes.subtitle);
@@ -1013,6 +1025,9 @@ export default function GenerarFichaTabG3({ id }) {
         // Sección de Arriendo
         if (arriendoData) {
 
+        const valorTotalArriendo = (arriendoData.valorTotalaPagar != null && arriendoData.valorTotalaPagar !== '')
+          ? parseArriendoNum(arriendoData.valorTotalaPagar)
+          : (parseArriendoNum(arriendoData.valorPendientePago) || 0) + (parseArriendoNum(arriendoData.valorPendientePagoAnticipado) || 0);
         const arriendoFields = [
           { label: 'Tipo de persona arrendador', value: arriendoData.arrendador_tipoPersona || 'No disponible' },
           { label: 'Nombre del arrendador', value: arriendoData.nombreArrendador || 'No disponible' },
@@ -1020,14 +1035,14 @@ export default function GenerarFichaTabG3({ id }) {
           { label: 'Número de identificación', value: arriendoData.numeroIdentificacion_arrendador || 'No disponible' },
           { label: 'Fecha inicio del contrato', value: formatDate(arriendoData.fechaInicio_contrato) },
           { label: 'Fecha finalización del contrato', value: formatDate(arriendoData.fechaFinalizacion_contrato) },
-          { label: 'Valor mensual del canon de arrendamiento', value: formatCurrency(arriendoData.valorMensual_canon) },
+          { label: 'Valor mensual del canon de arrendamiento', value: formatCurrencyArriendo(arriendoData.valorMensual_canon) },
           { label: 'Seleccione la finalidad del recurso', value: arriendoData.finalidad_del_recurso || 'No disponible' },
           { label: 'Cantidad de meses o periodos a pagar vencido', value: arriendoData.mesesAdeudados != null && arriendoData.mesesAdeudados !== '' ? Number(arriendoData.mesesAdeudados).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'No disponible' },
-          { label: 'Valor a pagar vencido', value: formatCurrency(arriendoData.valorPendientePago) },
+          { label: 'Valor a pagar vencido', value: formatCurrencyArriendo(arriendoData.valorPendientePago) },
           { label: 'Cantidad de meses o periodos a pagar anticipado', value: arriendoData.mesesAdeudadosAnticipado != null && arriendoData.mesesAdeudadosAnticipado !== '' ? Number(arriendoData.mesesAdeudadosAnticipado).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'No disponible' },
-          { label: 'Valor a pagar anticipado', value: formatCurrency(arriendoData.valorPendientePagoAnticipado) },
-          { label: 'Valor de Intereses generados por la mora', value: formatCurrency(arriendoData.valorInteresesMora) },
-          { label: 'Valor total a pagar', value: formatCurrency(arriendoData.valorTotalaPagar != null && arriendoData.valorTotalaPagar !== '' ? arriendoData.valorTotalaPagar : (parseInt(arriendoData.valorPendientePago || 0, 10) || 0) + (parseInt(arriendoData.valorPendientePagoAnticipado || 0, 10) || 0)) },
+          { label: 'Valor a pagar anticipado', value: formatCurrencyArriendo(arriendoData.valorPendientePagoAnticipado) },
+          { label: 'Valor de Intereses generados por la mora', value: formatCurrencyArriendo(arriendoData.valorInteresesMora) },
+          { label: 'Valor total a pagar', value: formatCurrencyArriendo(Number.isNaN(valorTotalArriendo) ? null : valorTotalArriendo) },
         ];
 
         const columnWidth = (pageWidth - 2 * margin) / 2;

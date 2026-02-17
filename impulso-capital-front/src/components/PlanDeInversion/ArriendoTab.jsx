@@ -11,7 +11,7 @@ export default function ArriendoTab({ id }) {
   const [error, setError] = useState(null);
 
   // Valor máximo permitido para la suma (valor a pagar vencido + valor a pagar anticipado)
-  const VALOR_MAXIMO_TOTAL = 3227714;
+  const VALOR_MAXIMO_TOTAL = 3227714.80;
 
   // Mapeo de nombres de campos para mostrar etiquetas más amigables
   const fieldNameMapping = {
@@ -81,20 +81,44 @@ export default function ArriendoTab({ id }) {
     return fieldOptions.hasOwnProperty(fieldName);
   };
 
-  // Función para formatear número a moneda (sin decimales, con $)
+  // Función para formatear número a moneda (con 2 decimales, formato $100.000,20)
   const formatCurrency = (value) => {
-    if (!value) return '';
-    // Remover todo lo que no sea dígito
-    const numericValue = value.toString().replace(/\D/g, '');
-    if (!numericValue) return '';
-    // Formatear con separadores de miles
-    return `$ ${parseInt(numericValue, 10).toLocaleString('es-CO')}`;
+    if (value === '' || value === null || value === undefined) return '';
+    const num = parseCurrencyToNumber(value);
+    if (Number.isNaN(num)) return '';
+    return `$${num.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Función para obtener solo el número de un valor formateado como moneda
+  // Parsea valor en pantalla (ej. "100.000,20" o "100000,20") a número
+  const parseCurrencyToNumber = (value) => {
+    if (!value) return 0;
+    const s = value.toString().trim().replace(/\s/g, '').replace('$', '');
+    if (!s) return 0;
+    const hasComma = s.includes(',');
+    const parts = s.split(',');
+    if (hasComma && parts.length >= 2) {
+      const intPart = parts[0].replace(/\./g, '').replace(/\D/g, '') || '0';
+      const decPart = parts[parts.length - 1].replace(/\D/g, '').slice(0, 2).padEnd(2, '0');
+      return parseFloat(`${intPart}.${decPart}`, 10);
+    }
+    const partsDot = s.split('.');
+    if (partsDot.length > 1) {
+      const last = partsDot[partsDot.length - 1];
+      const isDecimal = last.length <= 2 && /^\d+$/.test(last);
+      if (isDecimal) {
+        const intPart = partsDot.slice(0, -1).join('').replace(/\D/g, '') || '0';
+        return parseFloat(`${intPart}.${last.padEnd(2, '0')}`, 10);
+      }
+    }
+    const numericStr = s.replace(/\D/g, '');
+    return numericStr ? parseFloat(numericStr, 10) : 0;
+  };
+
+  // Devuelve string normalizado con punto decimal para guardar/calcular (ej. "100000.20")
   const parseCurrency = (value) => {
-    if (!value) return '';
-    return value.toString().replace(/\D/g, '');
+    const num = parseCurrencyToNumber(value);
+    if (Number.isNaN(num)) return '';
+    return num.toFixed(2);
   };
 
   // Función para formatear fecha de YYYY-MM-DD a DD/MM/YYYY para mostrar
@@ -212,17 +236,20 @@ export default function ArriendoTab({ id }) {
         }
       });
 
-      // Convertir campos de moneda al formato numérico para guardar
+      // Convertir campos de moneda a número para guardar (la BD espera numeric, no string)
       currencyFields.forEach(field => {
-        if (recordData[field]) {
-          recordData[field] = parseCurrency(recordData[field]);
+        const parsed = parseCurrencyToNumber(recordData[field]);
+        if (Number.isNaN(parsed) || !Number.isFinite(parsed) || parsed < 0) {
+          recordData[field] = null;
+        } else {
+          recordData[field] = Math.round(parsed * 100) / 100;
         }
       });
 
       // Calcular cantidad de meses o periodos a pagar vencido y anticipado (valor a pagar / valor mensual del canon), 2 decimales
-      const valorVencido = parseInt(recordData.valorPendientePago || '0', 10) || 0;
-      const valorAnticipado = parseInt(recordData.valorPendientePagoAnticipado || '0', 10) || 0;
-      const valorCanon = parseInt(recordData.valorMensual_canon || '0', 10) || 0;
+      const valorVencido = parseCurrencyToNumber(recordData.valorPendientePago) || 0;
+      const valorAnticipado = parseCurrencyToNumber(recordData.valorPendientePagoAnticipado) || 0;
+      const valorCanon = parseCurrencyToNumber(recordData.valorMensual_canon) || 0;
       recordData.mesesAdeudados = valorCanon > 0
         ? parseFloat((valorVencido / valorCanon).toFixed(2))
         : null;
@@ -232,11 +259,11 @@ export default function ArriendoTab({ id }) {
 
       // Calcular valor total a pagar (vencido + anticipado) y validar tope máximo
       const valorTotalaPagar = valorVencido + valorAnticipado;
-      recordData.valorTotalaPagar = valorTotalaPagar;
+      recordData.valorTotalaPagar = Math.round(valorTotalaPagar * 100) / 100;
 
-      // Permitir guardar solo cuando el valor total es exactamente igual a 3227714
-      if (valorTotalaPagar !== VALOR_MAXIMO_TOTAL) {
-        alert(`No se puede guardar: el valor total a pagar debe ser exactamente $${VALOR_MAXIMO_TOTAL.toLocaleString('es-CO')}. Valor actual: $${valorTotalaPagar.toLocaleString('es-CO')}.`);
+      // Permitir guardar solo cuando el valor total es exactamente igual a 3227714,80 (tolerancia por decimales)
+      if (Math.abs(valorTotalaPagar - VALOR_MAXIMO_TOTAL) > 0.01) {
+        alert(`No se puede guardar: el valor total a pagar debe ser exactamente $${VALOR_MAXIMO_TOTAL.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Valor actual: $${valorTotalaPagar.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`);
         return;
       }
 
@@ -288,13 +315,13 @@ export default function ArriendoTab({ id }) {
     'valorTotalaPagar'
   ];
 
-  // Valor total a pagar (suma de vencido + anticipado) para mostrar en el campo calculado
-  const valorTotalaPagarCalculado = (parseInt(parseCurrency(data.valorPendientePago) || '0', 10) || 0) + (parseInt(parseCurrency(data.valorPendientePagoAnticipado) || '0', 10) || 0);
+  // Valor total a pagar (suma de vencido + anticipado) para mostrar en el campo calculado (con decimales)
+  const valorTotalaPagarCalculado = parseCurrencyToNumber(data.valorPendientePago) + parseCurrencyToNumber(data.valorPendientePagoAnticipado);
 
   // Cantidad de meses o periodos a pagar vencido (calculado: Valor a pagar vencido / Valor mensual del canon), con 2 decimales
-  const valorPendientePagoNum = parseInt(parseCurrency(data.valorPendientePago) || '0', 10) || 0;
-  const valorPendientePagoAnticipadoNum = parseInt(parseCurrency(data.valorPendientePagoAnticipado) || '0', 10) || 0;
-  const valorMensualCanonNum = parseInt(parseCurrency(data.valorMensual_canon) || '0', 10) || 0;
+  const valorPendientePagoNum = parseCurrencyToNumber(data.valorPendientePago);
+  const valorPendientePagoAnticipadoNum = parseCurrencyToNumber(data.valorPendientePagoAnticipado);
+  const valorMensualCanonNum = parseCurrencyToNumber(data.valorMensual_canon);
   const mesesAdeudadosCalculado = valorMensualCanonNum > 0
     ? (valorPendientePagoNum / valorMensualCanonNum).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '';
@@ -422,7 +449,7 @@ export default function ArriendoTab({ id }) {
                       setData({ ...data, [fieldName]: formatted });
                     }
                   }}
-                  placeholder="$ 0"
+                  placeholder="$ 0,00"
                   style={{
                     width: '100%',
                     minHeight: '40px'
