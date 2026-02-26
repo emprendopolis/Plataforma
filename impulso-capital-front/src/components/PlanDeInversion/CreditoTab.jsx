@@ -110,8 +110,8 @@ export default function CreditoTab({ id }) {
     'intereses'
   ];
 
-  // Campos moneda con decimales: en BD se guarda 3000000.50, en pantalla se muestra $ 3.000.000,50
-  const currencyDecimalFields = [
+  // Campos moneda con decimales: en BD se guarda con punto (ej. 3000000.50), en front se muestra $ 3.000.000,50
+  const currencyFieldsWithDecimals = [
     'Valor_cuota_mensual',
     'pago_capital_deuda',
     'valor_capitalizar'
@@ -149,7 +149,7 @@ export default function CreditoTab({ id }) {
                 record[field] = formatCurrency(record[field]);
               }
             });
-            currencyDecimalFields.forEach(field => {
+            currencyFieldsWithDecimals.forEach(field => {
               if (record[field]) {
                 record[field] = formatCurrencyWithDecimals(record[field]);
               }
@@ -185,53 +185,63 @@ export default function CreditoTab({ id }) {
     return `$ ${parseInt(numericValue, 10).toLocaleString('es-CO')}`;
   };
 
-  // Función para formatear moneda con decimales: muestra $ 3.000.000,50 (acepta entrada con coma o punto)
-  const formatCurrencyWithDecimals = (value) => {
-    if (value === '' || value === null || value === undefined) return '';
-    const str = value.toString().trim();
-    const withoutSymbol = str.replace(/\$\s?/g, '').trim();
-    let num;
-    if (withoutSymbol.includes(',')) {
-      // Formato usuario: 3.000.000,50 → quitar puntos de miles, coma a punto
-      const normalized = withoutSymbol.replace(/\./g, '').replace(',', '.');
-      num = parseFloat(normalized);
-    } else {
-      // Formato BD o número: 3000000.50 (un solo punto = decimal)
-      num = parseFloat(withoutSymbol);
-    }
-    if (Number.isNaN(num)) return str;
-    const fixed = num.toFixed(2);
-    const [intPart, decPart] = fixed.split('.');
-    const withThousands = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return `$ ${withThousands},${decPart}`;
-  };
-
-  // Función para obtener valor numérico con decimales para guardar en BD: "3000000.50"
-  const parseCurrencyWithDecimals = (value) => {
-    if (!value) return '';
-    const str = value.toString().trim();
-    const withoutSymbol = str.replace(/\$\s?/g, '').trim();
-    let normalized;
-    if (withoutSymbol.includes(',')) {
-      normalized = withoutSymbol.replace(/\./g, '').replace(',', '.');
-    } else {
-      // Ya viene con punto decimal (ej. 3000000.50) o solo miles (3.000.000)
-      const parts = withoutSymbol.split('.');
-      if (parts.length === 2 && /^\d+$/.test(parts[0]) && /^\d+$/.test(parts[1])) {
-        normalized = withoutSymbol; // un solo punto = decimal
-      } else {
-        normalized = withoutSymbol.replace(/\./g, ''); // varios puntos = miles
-      }
-    }
-    const num = parseFloat(normalized);
-    if (Number.isNaN(num)) return '';
-    return num.toFixed(2);
-  };
-
-  // Función para obtener solo el número de un valor formateado como moneda (enteros)
+  // Función para obtener solo el número de un valor formateado como moneda
   const parseCurrency = (value) => {
     if (!value) return '';
     return value.toString().replace(/\D/g, '');
+  };
+
+  // Formatear valor con decimales para mostrar: "$ 3.000.000,50" (entrada puede ser 3000000.50, "3.227.714,80" o 3227714,80)
+  const formatCurrencyWithDecimals = (value) => {
+    if (value === '' || value == null) return '';
+    const str = value.toString().trim().replace(/\s/g, '').replace(/^\$\s*/, '');
+    if (!str) return '';
+
+    let integerNum = 0;
+    let decimalPart = '';
+
+    if (str.includes(',')) {
+      // Ya está en formato display (ej. "3.227.714,80") o usuario escribió "3227714,80": la coma es decimal
+      const [intStr, decStr] = str.split(',');
+      integerNum = parseInt((intStr || '0').replace(/\./g, '').replace(/\D/g, ''), 10) || 0;
+      decimalPart = (decStr || '').replace(/\D/g, '').slice(0, 2);
+    } else {
+      // Valor de BD o sin coma: solo un punto significa decimal (ej. "3227714.80")
+      const parts = str.split('.');
+      if (parts.length === 2) {
+        integerNum = parseInt((parts[0] || '0').replace(/\D/g, ''), 10) || 0;
+        decimalPart = (parts[1] || '').replace(/\D/g, '').slice(0, 2);
+      } else {
+        // Varios puntos o ninguno: solo parte entera (quitar todos los puntos)
+        integerNum = parseInt(str.replace(/\./g, '').replace(/\D/g, ''), 10) || 0;
+      }
+    }
+
+    const formattedInteger = integerNum.toLocaleString('es-CO', { maximumFractionDigits: 0 }).replace(/,/g, '.');
+    if (decimalPart === '') return `$ ${formattedInteger}`;
+    return `$ ${formattedInteger},${decimalPart.padEnd(2, '0')}`;
+  };
+
+  // De valor mostrado o escrito (ej. "$ 3.000.000,50" o "3000000,50") a valor para BD: "3000000.50"
+  const parseCurrencyWithDecimals = (value) => {
+    if (!value) return '';
+    const str = value.toString().trim().replace(/\s/g, '').replace(/^\$\s*/, '');
+    if (!str) return '';
+    const hasComma = str.includes(',');
+    if (hasComma) {
+      const [intPart, decPart = ''] = str.split(',');
+      const integer = (intPart || '0').replace(/\./g, '').replace(/\D/g, '') || '0';
+      const decimal = (decPart || '').replace(/\D/g, '').slice(0, 2);
+      if (decimal === '') return integer;
+      return `${integer}.${decimal.padEnd(2, '0')}`;
+    }
+    const withDot = str.replace(/\./g, '');
+    if (/^\d+$/.test(withDot)) return withDot;
+    const singleDot = str.replace(/,/g, '.');
+    const [intPart, decPart = ''] = singleDot.split('.');
+    const integer = (intPart || '0').replace(/\D/g, '') || '0';
+    const decimal = (decPart || '').replace(/\D/g, '').slice(0, 2);
+    return decimal ? `${integer}.${decimal.padEnd(2, '0')}` : integer;
   };
 
   // Función para formatear fecha de DD/MM/YYYY a YYYY-MM-DD para guardar
@@ -266,6 +276,12 @@ export default function CreditoTab({ id }) {
     if (currencyFields.includes(name)) {
       newValue = value;
     }
+    // Campos moneda con decimales: permitir dígitos y una coma como decimal
+    else if (currencyFieldsWithDecimals.includes(name)) {
+      newValue = value.replace(/[^\d,]/g, '');
+      const parts = newValue.split(',');
+      if (parts.length > 2) newValue = parts[0] + ',' + parts.slice(1).join('');
+    }
     // Si es un campo numérico, solo permitir dígitos
     else if (numericFields.includes(name)) {
       newValue = value.replace(/\D/g, '');
@@ -286,7 +302,8 @@ export default function CreditoTab({ id }) {
     if (currencyFields.includes(name) && value) {
       const formatted = formatCurrency(value);
       setData({ ...data, [name]: formatted });
-    } else if (currencyDecimalFields.includes(name) && value) {
+    }
+    if (currencyFieldsWithDecimals.includes(name) && value) {
       const formatted = formatCurrencyWithDecimals(value);
       setData({ ...data, [name]: formatted });
     }
@@ -303,14 +320,14 @@ export default function CreditoTab({ id }) {
       recordData.user_id = userId;
 
       // Preparar datos para guardar
-      // Convertir campos de moneda a solo números (enteros)
+      // Convertir campos de moneda a solo números
       currencyFields.forEach(field => {
         if (recordData[field]) {
           recordData[field] = parseCurrency(recordData[field]);
         }
       });
-      // Campos con decimales: guardar con punto ej. 3000000.50
-      currencyDecimalFields.forEach(field => {
+      // Campos con decimales: guardar con punto (ej. 3000000.50)
+      currencyFieldsWithDecimals.forEach(field => {
         if (recordData[field]) {
           recordData[field] = parseCurrencyWithDecimals(recordData[field]);
         }
