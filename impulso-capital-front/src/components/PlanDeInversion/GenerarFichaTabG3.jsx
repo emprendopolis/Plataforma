@@ -799,6 +799,26 @@ export default function GenerarFichaTabG3({ id }) {
         return `$${numValue.toLocaleString('es-CO', { minimumFractionDigits: 0 })}`;
       };
 
+      // Formato moneda con decimales para BD (ej. 3227714.80) -> "$ 3.227.714,80"
+      const formatCurrencyWithDecimals = (value) => {
+        if (value === '' || value == null) return 'No disponible';
+        const str = value.toString().trim();
+        if (!str) return 'No disponible';
+        const normalized = str.replace(',', '.');
+        const parts = normalized.split('.');
+        let integerNum = 0;
+        let decimalPart = '';
+        if (parts.length === 2) {
+          integerNum = parseInt((parts[0] || '0').replace(/\D/g, ''), 10) || 0;
+          decimalPart = (parts[1] || '').replace(/\D/g, '').slice(0, 2);
+        } else {
+          integerNum = parseInt(str.replace(/\D/g, ''), 10) || 0;
+        }
+        const formattedInteger = integerNum.toLocaleString('es-CO', { maximumFractionDigits: 0 }).replace(/,/g, '.');
+        if (decimalPart === '') return `$ ${formattedInteger}`;
+        return `$ ${formattedInteger},${decimalPart.padEnd(2, '0')}`;
+      };
+
       const formatDate = (dateStr) => {
         if (!dateStr) return 'No disponible';
         if (dateStr.includes('-')) {
@@ -954,14 +974,14 @@ export default function GenerarFichaTabG3({ id }) {
           { label: 'Fecha de desembolso', value: formatDate(creditoData.fecha_desembolso) },
           { label: 'Número de cuotas', value: creditoData.numero_cuotas || 'No disponible' },
           { label: 'Número de cuotas pagadas', value: creditoData.numero_cuotasPagadas || 'No disponible' },
-          { label: 'Valor de la cuota mensual', value: formatCurrency(creditoData.Valor_cuota_mensual) },
+          { label: 'Valor de la cuota mensual', value: formatCurrencyWithDecimals(creditoData.Valor_cuota_mensual) },
           { label: 'Estado actual del crédito', value: creditoData.estado_credito || 'No disponible' },
           { label: 'Valor de la mora', value: formatCurrency(creditoData.valor_mora) },
           { label: 'Cuotas por pagar', value: creditoData.cuotas_por_pagar || 'No disponible' },
           { label: 'Monto por pagar', value: formatCurrency(creditoData.monto_por_pagar) },
-          { label: 'Pago a capital de la deuda', value: formatCurrency(creditoData.pago_capital_deuda) },
+          { label: 'Pago a capital de la deuda', value: formatCurrencyWithDecimals(creditoData.pago_capital_deuda) },
           { label: 'Intereses', value: formatCurrency(creditoData.intereses) },
-          { label: 'Valor a capitalizar', value: formatCurrency(creditoData.valor_capitalizar) },
+          { label: 'Valor a capitalizar', value: formatCurrencyWithDecimals(creditoData.valor_capitalizar) },
         ];
 
         const columnWidth = (pageWidth - 2 * margin) / 2;
