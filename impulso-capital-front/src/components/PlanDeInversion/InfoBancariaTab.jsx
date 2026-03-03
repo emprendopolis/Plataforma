@@ -38,6 +38,7 @@ export default function InfoBancariaTab({ id }) {
     "BANCO FALABELLA",
     "BANCO FINANDINA",
     "BANCO GNB SUDAMERIS",
+    "BANCO ITAU COLOMBIA",
     "BANCO MIBANCO",
     "BANCO MUNDO MUJER",
     "BANCO PICHINCHA",
