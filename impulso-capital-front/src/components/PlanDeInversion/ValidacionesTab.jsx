@@ -325,7 +325,7 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
               <button
                 className={`btn ${data['Aprobación propaís'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación propaís', true)}
-                disabled={localStorage.getItem('role_id') === '3' || totalInversionNumerico > getLimiteInversion()}
+                disabled={totalInversionNumerico > getLimiteInversion()}
                 title={totalInversionNumerico > getLimiteInversion() ? `No se puede aprobar: el total de inversión supera ${getLimiteInversionFormateado()}` : ''}
               >
                 Aprobar

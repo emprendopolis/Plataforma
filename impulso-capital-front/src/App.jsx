@@ -29,6 +29,19 @@ function PrivateRoute({ children }) {
   return token ? children : <Navigate to="/login" />;
 }
 
+// Ruta de Escritorio: rol 3 (consulta) no tiene acceso, se redirige a Listado Final
+function EscritorioRoute({ children }) {
+  const token = localStorage.getItem('token');
+  const roleId = localStorage.getItem('role_id');
+  if (!token) return <Navigate to="/login" />;
+  if (roleId === '3') return <Navigate to="/pi-tables" replace />;
+  return children;
+}
+
+EscritorioRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
 PrivateRoute.propTypes = {
   children: PropTypes.node.isRequired,
 };
@@ -54,12 +67,14 @@ export default function App() {
           path="/escritorio"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <Content />
-                <Footer />
-              </div>
+              <EscritorioRoute>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <Content />
+                  <Footer />
+                </div>
+              </EscritorioRoute>
             </PrivateRoute>
           }
         />

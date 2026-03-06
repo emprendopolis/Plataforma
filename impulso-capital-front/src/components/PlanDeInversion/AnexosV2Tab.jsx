@@ -335,9 +335,9 @@ export default function AnexosV2Tab({ id }) {
         ) : (
           <div className="document-status">
             <span 
-              className="text-muted cursor-pointer"
-              onClick={() => openUploadModal(fieldName)}
-              style={{ cursor: 'pointer' }}
+              className={isConsultaRole ? "text-muted" : "text-muted cursor-pointer"}
+              onClick={isConsultaRole ? undefined : () => openUploadModal(fieldName)}
+              style={{ cursor: isConsultaRole ? 'default' : 'pointer' }}
             >
               Sin archivo adjunto
             </span>

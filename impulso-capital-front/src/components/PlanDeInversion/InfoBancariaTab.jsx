@@ -4,6 +4,10 @@ import axios from "axios";
 import config from '../../config';
 
 export default function InfoBancariaTab({ id }) {
+  // Rol consulta (id 3): solo visualización, edición deshabilitada
+  const userRole = localStorage.getItem('role_id');
+  const isConsultaRole = userRole === '3';
+
   const [data, setData] = useState({
     "Banco": "",
     "Tipo de cuenta": "",
@@ -370,6 +374,7 @@ export default function InfoBancariaTab({ id }) {
                   name="Banco"
                   value={data["Banco"]}
                   onChange={handleChange}
+                  disabled={isConsultaRole}
                 >
                   <option value="">Seleccionar...</option>
                   {bancos.map((b) => (
@@ -385,6 +390,7 @@ export default function InfoBancariaTab({ id }) {
                   name="Tipo de cuenta"
                   value={data["Tipo de cuenta"]}
                   onChange={handleChange}
+                  disabled={isConsultaRole}
                 >
                   <option value="">Seleccionar...</option>
                   {tiposCuenta.map((t) => (
@@ -403,6 +409,7 @@ export default function InfoBancariaTab({ id }) {
                   onChange={handleChange}
                   onWheel={(e) => e.target.blur()}
                   placeholder="Ej: 3582004071"
+                  disabled={isConsultaRole}
                 />
               </div>
 
@@ -413,6 +420,7 @@ export default function InfoBancariaTab({ id }) {
                   name="Tipo de documento titular"
                   value={data["Tipo de documento titular"]}
                   onChange={handleChange}
+                  disabled={isConsultaRole}
                 >
                   <option value="">Seleccionar...</option>
                   {tiposDocumento.map((d) => (
@@ -431,6 +439,7 @@ export default function InfoBancariaTab({ id }) {
                   onChange={handleChange}
                   onWheel={(e) => e.target.blur()}
                   placeholder="Ej: 1010239532"
+                  disabled={isConsultaRole}
                 />
               </div>
             </div>
@@ -442,6 +451,7 @@ export default function InfoBancariaTab({ id }) {
             </div>
             */}
 
+            {!isConsultaRole && (
             <div className="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2 info-bancaria-buttons">
               <button type="button" className="btn btn-secondary btn-sm info-bancaria-btn" onClick={handleCancel}>
                 Cancelar
@@ -461,6 +471,18 @@ export default function InfoBancariaTab({ id }) {
                 </button>
               </div>
             </div>
+            )}
+            {isConsultaRole && recordId && (
+            <div className="d-flex justify-content-end mt-4">
+              <button
+                type="button"
+                className="btn btn-info btn-sm info-bancaria-btn"
+                onClick={handleOpenHistoryModal}
+              >
+                Ver Historial de Cambios
+              </button>
+            </div>
+            )}
           </div>
         </div>
       )}

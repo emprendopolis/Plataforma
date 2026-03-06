@@ -37,7 +37,7 @@ export default function Aside() {
       <aside className="main-sidebar main-sidebar-custom sidebar-dark-primary elevation-4">
         {/* Brand Logo */}
         <div className="brand-link">
-          <Link to="/escritorio" className="brand-link">
+          <Link to={role === 3 ? "/pi-tables" : "/escritorio"} className="brand-link">
             <img
               src={logo}
               alt="Impulso Capital Logo"
@@ -74,13 +74,15 @@ export default function Aside() {
               role="menu"
               data-accordion="false"
             >
-              {/* Escritorio: visible para todos los roles */}
-              <li className="nav-item">
-                <Link to="/escritorio" className="nav-link">
-                  <i className="nav-icon fas fa-th" />
-                  <p>Escritorio</p>
-                </Link>
-              </li>
+              {/* Escritorio: visible para todos excepto rol consulta (3) */}
+              {role !== 3 && (
+                <li className="nav-item">
+                  <Link to="/escritorio" className="nav-link">
+                    <i className="nav-icon fas fa-th" />
+                    <p>Escritorio</p>
+                  </Link>
+                </li>
+              )}
 
               {/* Gestionar Tablas: visible solo para SuperAdmin (role === 1) */}
               {role === 1 && (

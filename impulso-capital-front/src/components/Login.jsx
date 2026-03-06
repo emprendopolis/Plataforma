@@ -45,8 +45,9 @@ export default function Login() {
           message: "Inicio de sesión exitoso",
           type: "success",
         });
+        const isConsulta = response.data.user.role === 3;
         setTimeout(() => {
-          navigate("/escritorio");
+          navigate(isConsulta ? "/pi-tables" : "/escritorio");
         }, 1500);
       }
     } catch (error) {
