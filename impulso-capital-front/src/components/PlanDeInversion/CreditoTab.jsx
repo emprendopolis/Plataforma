@@ -52,6 +52,7 @@ export default function CreditoTab({ id }) {
       'Banco de Occidente',
       'Banco Falabella',
       'Banco Finandina',
+      'Banco Mundo Mujer',
       'Banco Pichincha',
       'Banco Popular',
       'Banco Serfinanza',
