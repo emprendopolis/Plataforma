@@ -1,5 +1,5 @@
 // DynamicRecordEdit.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './css/DynamicRecordEdit.css';
@@ -121,11 +121,20 @@ export default function DynamicRecordEdit() {
   const [editandoPriorizacion, setEditandoPriorizacion] = useState(false);
   const [valorPriorizacion, setValorPriorizacion] = useState('');
 
+  const [asesorFieldExists, setAsesorFieldExists] = useState(false);
+  const [asesorsListLoaded, setAsesorsListLoaded] = useState(false);
+  const [nombreAsesorResuelto, setNombreAsesorResuelto] = useState('');
+  const [asesorExtra, setAsesorExtra] = useState(null);
+  const [cargandoNombreAsesor, setCargandoNombreAsesor] = useState(false);
+  const [editandoAsesor, setEditandoAsesor] = useState(false);
+  const [valorAsesor, setValorAsesor] = useState('');
+
   const getLoggedUserRoleId = () => {
     return localStorage.getItem('role_id') || null;
   };
 
   const role = getLoggedUserRoleId();
+  const canEditAsesor = role === '1' || role === '2';
 
   const handleOpenStatusModal = () => {
     setNewStatus(record.Estado || '');
@@ -221,7 +230,11 @@ export default function DynamicRecordEdit() {
         const estadoExists = !!estadoField;
         setEstadoFieldExists(estadoExists);
 
-        const fieldsToExclude = ['id', 'Estado', 'Acepta terminos', 'created_at', 'updated_at', 'Priorizacion capitalizacion', 'Asesor'];
+        const fieldsToExclude = ['id', 'Estado', 'Acepta terminos', 'created_at', 'updated_at', 'Priorizacion capitalizacion', 'Asesor', 'Categoria'];
+        const asesorExists = fieldsResponse.data.some(
+          (field) => field.column_name === 'Asesor'
+        );
+        setAsesorFieldExists(asesorExists);
         const filteredFields = fieldsResponse.data.filter(
           (field) => !fieldsToExclude.includes(field.column_name)
         );
@@ -260,17 +273,26 @@ export default function DynamicRecordEdit() {
           setCurrentEstado(null);
         }
 
-        if (filteredFields.some((field) => field.column_name === 'Asesor')) {
-          const asesorsResponse = await axios.get(
-            `${config.urls.users}/asesors`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-          setAsesors(asesorsResponse.data);
+        setAsesorsListLoaded(false);
+        if (asesorExists) {
+          try {
+            const asesorsResponse = await axios.get(
+              `${config.urls.users}/asesors`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            setAsesors(asesorsResponse.data);
+          } catch (asesorsErr) {
+            console.error('Error obteniendo lista de asesores:', asesorsErr);
+            setAsesors([]);
+          }
+        } else {
+          setAsesors([]);
         }
+        setAsesorsListLoaded(true);
 
         const inscriptionsResponse = await axios.get(
           `${config.urls.tables}?tableType=inscription`,
@@ -369,6 +391,85 @@ export default function DynamicRecordEdit() {
       setValorPriorizacion(record['Priorizacion capitalizacion']);
     }
   }, [record]);
+
+  useEffect(() => {
+    if (record && record.Asesor !== undefined && record.Asesor !== null && record.Asesor !== '') {
+      setValorAsesor(String(record.Asesor));
+    } else {
+      setValorAsesor('');
+    }
+  }, [record]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!asesorFieldExists || !record.Asesor) {
+      setNombreAsesorResuelto('');
+      setAsesorExtra(null);
+      setCargandoNombreAsesor(false);
+      return undefined;
+    }
+
+    if (!asesorsListLoaded) {
+      return undefined;
+    }
+
+    const idStr = String(record.Asesor);
+    const enLista = asesors.find((a) => String(a.id) === idStr);
+    if (enLista?.username) {
+      setNombreAsesorResuelto(enLista.username);
+      setAsesorExtra(null);
+      setCargandoNombreAsesor(false);
+      return undefined;
+    }
+
+    const token = localStorage.getItem('token');
+    setCargandoNombreAsesor(true);
+    axios
+      .get(`${config.urls.users}/${idStr}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const u = res.data;
+        const nombre = u?.username || '';
+        setNombreAsesorResuelto(nombre);
+        if (u?.id != null) {
+          setAsesorExtra({
+            id: u.id,
+            username: nombre || `Usuario ${u.id}`,
+          });
+        } else {
+          setAsesorExtra(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setNombreAsesorResuelto('');
+          setAsesorExtra(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCargandoNombreAsesor(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [asesorFieldExists, record.Asesor, asesors, asesorsListLoaded]);
+
+  const asesoresParaSelect = useMemo(() => {
+    const list = asesors.map((a) => ({ id: a.id, username: a.username }));
+    if (
+      asesorExtra &&
+      !list.some((a) => String(a.id) === String(asesorExtra.id))
+    ) {
+      list.push(asesorExtra);
+    }
+    return list.sort((a, b) =>
+      String(a.username || '').localeCompare(String(b.username || ''), 'es')
+    );
+  }, [asesors, asesorExtra]);
 
   const handleChange = (e) => {
     setRecord({ ...record, [e.target.name]: e.target.value });
@@ -715,6 +816,29 @@ export default function DynamicRecordEdit() {
     }
   };
 
+  const handleGuardarAsesor = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const asesorPayload =
+        valorAsesor === '' ? null : Number(valorAsesor);
+      await axios.put(
+        `${config.urls.tables}/${tableName}/record/${recordId}`,
+        { ...record, Asesor: asesorPayload },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setRecord({ ...record, Asesor: asesorPayload });
+      setEditandoAsesor(false);
+      setSuccessMessage('Asesor actualizado correctamente');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    } catch (error) {
+      setError('Error guardando el asesor');
+    }
+  };
+
   const estadoStyle = {
     padding: '10px',
     borderRadius: '5px',
@@ -972,21 +1096,6 @@ export default function DynamicRecordEdit() {
                           className="form-control"
                           readOnly
                         />
-                      ) : field.column_name === 'Asesor' ? (
-                        <select
-                          className="form-control"
-                          name={field.column_name}
-                          value={record[field.column_name] || ''}
-                          onChange={handleChange}
-                          disabled={role === '3'}
-                        >
-                          <option value="">-- Selecciona un Asesor --</option>
-                          {asesors.map((asesor) => (
-                            <option key={asesor.id} value={asesor.id}>
-                              {asesor.username}
-                            </option>
-                          ))}
-                        </select>
                       ) : field.column_name === 'Es usted comercializador productor o prestacion de servicios' ? (
                         <select
                           className="form-control"
@@ -1176,6 +1285,84 @@ export default function DynamicRecordEdit() {
                       </>
                     )}
                   </div>
+
+                  {/* Cuadro de Asesor (solo tablas con columna Asesor; edición roles 1 y 2) */}
+                  {asesorFieldExists && (
+                    <div
+                      className="mt-0"
+                      style={{
+                        width: '100%',
+                        background: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+                        padding: '18px 20px',
+                        marginBottom: '16px',
+                        border: '1px solid #e0e0e0',
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 12 }}>
+                        Asesor
+                      </div>
+                      {editandoAsesor && canEditAsesor ? (
+                        <>
+                          <select
+                            className="form-control mb-2"
+                            value={valorAsesor}
+                            onChange={(e) => setValorAsesor(e.target.value)}
+                          >
+                            <option value="">-- Sin asignar --</option>
+                            {asesoresParaSelect.map((asesor) => (
+                              <option key={asesor.id} value={String(asesor.id)}>
+                                {asesor.username}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="btn btn-success btn-sm mr-2"
+                            onClick={handleGuardarAsesor}
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => {
+                              setValorAsesor(
+                                record.Asesor != null && record.Asesor !== ''
+                                  ? String(record.Asesor)
+                                  : ''
+                              );
+                              setEditandoAsesor(false);
+                            }}
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: 15, marginBottom: 10 }}>
+                            {!record.Asesor
+                              ? 'Sin asignar'
+                              : cargandoNombreAsesor
+                                ? 'Cargando…'
+                                : nombreAsesorResuelto ||
+                                  `Usuario #${record.Asesor}`}
+                          </div>
+                          {canEditAsesor && (
+                            <button
+                              type="button"
+                              className="btn btn-light btn-sm mt-0"
+                              style={{ border: '1px solid #ccc' }}
+                              onClick={() => setEditandoAsesor(true)}
+                            >
+                              Editar
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   {/* Sección de Archivos adicionales - OCULTA TEMPORALMENTE
                   <div className="mt-4" style={{ width: '100%' }}>

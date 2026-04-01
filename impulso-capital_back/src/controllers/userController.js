@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 const User = require('../models/User');
 const Role = require('../models/Role');
 const Localidad = require('../models/Localidad');
@@ -274,33 +275,40 @@ exports.toggleUserStatus = async (req, res) => {
   }
 };
 
-// Obtener usuarios con el rol de asesor
+// Usuarios con rol asesor y administrador (para asignación en edición de registro)
 exports.getAsesors = async (req, res) => {
   try {
-    console.log('Solicitud recibida para obtener asesores');
-
-    // Buscar el rol de 'asesor' en la tabla Role
-    const asesorRole = await Role.findOne({ where: { role_name: 'asesor' } });
-
-    if (!asesorRole) {
-      console.error('Rol "asesor" no encontrado en la base de datos');
-      return res.status(404).json({ message: 'Rol "asesor" no encontrado' });
-    }
-
-    console.log('Rol "asesor" encontrado con id:', asesorRole.id);
-
-    // Obtener los usuarios con el role_id correspondiente
-    const asesors = await User.findAll({
-      where: { role_id: asesorRole.id },
-      attributes: ['id', 'username', 'documento'], // Ajusta según los campos que necesites
+    const targetRoles = await Role.findAll({
+      where: {
+        [Op.or]: [
+          {
+            role_name: {
+              [Op.in]: ['asesor', 'Administrador', 'admin', 'Admin'],
+            },
+          },
+          { id: { [Op.in]: [2, 5] } },
+        ],
+      },
     });
 
-    console.log('Usuarios obtenidos con el rol de asesor:', asesors);
+    if (!targetRoles.length) {
+      return res.status(404).json({
+        message:
+          'No se encontraron roles de asesor o administrador en la base de datos',
+      });
+    }
+
+    const roleIds = [...new Set(targetRoles.map((r) => r.id))];
+
+    const asesors = await User.findAll({
+      where: { role_id: { [Op.in]: roleIds } },
+      attributes: ['id', 'username', 'documento'],
+      order: [['username', 'ASC']],
+    });
 
     res.status(200).json(asesors);
   } catch (error) {
     console.error('Error al obtener asesores:', error.message);
-    console.error('Detalles del error:', error);
 
     res.status(500).json({
       message: 'Error obteniendo asesores',
