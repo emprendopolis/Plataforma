@@ -125,12 +125,14 @@ async function getDocumentPathsForCedula(cedula) {
     } else {
     }
     
-    // Obtener documentos iniciales de la tabla files
+    // Documentos iniciales (módulo empresas): solo incluir si cumple es true o aún no se ha marcado (null).
+    // Excluir explícitamente cumple = false ("No cumple").
     const inicialesResult = await client.query(
       `SELECT file_path, name FROM files 
        WHERE record_id = $1 
        AND table_name = 'inscription_caracterizacion' 
-       AND source = 'documentos_iniciales'`,
+       AND source = 'documentos_iniciales'
+       AND (cumple IS NULL OR cumple = true)`,
       [caracterizacionId]
     );
 
