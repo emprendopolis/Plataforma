@@ -44,6 +44,7 @@ export default function CreditoTab({ id }) {
       'Avista',
       'Bancamía',
       'Bancolombia',
+      'Banco Agrario',
       'Banco AV Villas',
       'Banco Caja Social',
       'Banco Cooperativo Coopcentral',
