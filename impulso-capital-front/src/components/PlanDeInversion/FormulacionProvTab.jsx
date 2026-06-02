@@ -232,7 +232,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
   const getLimiteInversion = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
       return 3227714; // 3.227.714
-    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+    } else if (priorizacionCapitalizacion === 'Grupo 2' || priorizacionCapitalizacion === 'Grupo 4') {
       return 3000000; // 3.000.000
     }
     // Por defecto, usar el límite del Grupo 2
@@ -243,7 +243,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
   const getLimiteInversionFormateado = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
       return '$ 3.227.714';
-    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+    } else if (priorizacionCapitalizacion === 'Grupo 2' || priorizacionCapitalizacion === 'Grupo 4') {
       return '$ 3.000.000';
     }
     return '$ 3.000.000';
@@ -944,7 +944,7 @@ export default function FormulacionProvTab({ id, updateTotalInversion }) {
                     <td style={{ color: 'red', fontWeight: 'bold' }}>
                       {priorizacionCapitalizacion === null || priorizacionCapitalizacion === undefined || priorizacionCapitalizacion === ''
                         ? 'Sin asignación de priorización'
-                        : priorizacionCapitalizacion === 'Grupo 2'
+                        : priorizacionCapitalizacion === 'Grupo 2' || priorizacionCapitalizacion === 'Grupo 4'
                         ? '$ 3.000.000'
                         : priorizacionCapitalizacion === 'Grupo 3'
                         ? '$ 3.227.714'

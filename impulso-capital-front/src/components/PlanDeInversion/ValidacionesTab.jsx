@@ -118,7 +118,7 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
   const getLimiteInversion = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
       return 3227714; // 3.227.714
-    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+    } else if (priorizacionCapitalizacion === 'Grupo 2' || priorizacionCapitalizacion === 'Grupo 4') {
       return 3000000; // 3.000.000
     }
     // Por defecto, usar el límite del Grupo 2
@@ -129,7 +129,7 @@ export default function ValidacionesTab({ id, totalInversionNumerico = 0 }) {
   const getLimiteInversionFormateado = () => {
     if (priorizacionCapitalizacion === 'Grupo 3') {
       return '$3.227.714';
-    } else if (priorizacionCapitalizacion === 'Grupo 2') {
+    } else if (priorizacionCapitalizacion === 'Grupo 2' || priorizacionCapitalizacion === 'Grupo 4') {
       return '$3.000.000';
     }
     return '$3.000.000';

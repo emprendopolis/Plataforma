@@ -133,6 +133,8 @@ export default function PlanDeInversion() {
     }
   };
 
+  const esGrupo2O4 = (grupo) => grupo === 'Grupo 2' || grupo === 'Grupo 4';
+
   // Función para determinar si un tab debe mostrarse
   const shouldShowTab = (tabName) => {
     if (!priorizacionCapitalizacion) return true; // Mostrar todos los tabs si no hay datos
@@ -163,8 +165,8 @@ export default function PlanDeInversion() {
         
       case 'FormulacionKit':
       case 'GenerarFichaKit':
-        // Ocultar si es Grupo 2
-        return priorizacionCapitalizacion !== 'Grupo 2';
+        // Ocultar si es Grupo 2 o Grupo 4
+        return !esGrupo2O4(priorizacionCapitalizacion);
         
       case 'GenerarFichaG3':
         // Solo mostrar GenerarFichaG3 para Grupo 3
@@ -185,8 +187,8 @@ export default function PlanDeInversion() {
           // Grupo 1: ocultar FormulacionProv, GenerarFicha, Credito y Arriendo
           return tabName !== 'FormulacionProv' && tabName !== 'GenerarFicha' && tabName !== 'Credito' && tabName !== 'Arriendo';
         }
-        if (priorizacionCapitalizacion === 'Grupo 2') {
-          // Grupo 2: ocultar FormulacionKit, GenerarFichaKit, Credito y Arriendo
+        if (esGrupo2O4(priorizacionCapitalizacion)) {
+          // Grupo 2 / Grupo 4: ocultar FormulacionKit, GenerarFichaKit, Credito y Arriendo
           return tabName !== 'FormulacionKit' && tabName !== 'GenerarFichaKit' && tabName !== 'Credito' && tabName !== 'Arriendo';
         }
         return true; // Mostrar otros tabs siempre
