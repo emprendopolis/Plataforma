@@ -404,8 +404,7 @@ export default function AnexosV2Tab({ id }) {
   const grupo4HiddenCierreRutaFields = [
     'acta_causales',
     'lista_asistencia',
-    'certificado_formacion',
-    'incumplimiento'
+    'certificado_formacion'
   ];
 
   const shouldShowCierreRutaField = (fieldName) => {
