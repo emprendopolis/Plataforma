@@ -401,6 +401,23 @@ export default function AnexosV2Tab({ id }) {
     );
   };
 
+  const grupo4HiddenCierreRutaFields = [
+    'acta_causales',
+    'lista_asistencia',
+    'certificado_formacion',
+    'incumplimiento'
+  ];
+
+  const shouldShowCierreRutaField = (fieldName) => {
+    if (
+      priorizacionCapitalizacion === 'Grupo 4' &&
+      grupo4HiddenCierreRutaFields.includes(fieldName)
+    ) {
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div>
       {loading ? (
@@ -444,9 +461,10 @@ export default function AnexosV2Tab({ id }) {
           <div className="card p-4">
             <h5 className="mb-4" style={{ fontWeight: 'bold' }}>Cierre de Ruta</h5>
             
-            {cierreRutaFields.map(fieldName => 
-              renderDocumentItem(fieldName)
-            )}
+            {cierreRutaFields
+              .filter(fieldName => shouldShowCierreRutaField(fieldName))
+              .map(fieldName => renderDocumentItem(fieldName))
+            }
           </div>
         </div>
       )}
