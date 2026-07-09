@@ -135,6 +135,7 @@ export default function DynamicRecordEdit() {
   };
 
   const role = getLoggedUserRoleId();
+  const isRole3 = role === '3';
   const canEditAsesor = role === '1' || role === '2';
 
   const handleOpenStatusModal = () => {
@@ -689,6 +690,8 @@ export default function DynamicRecordEdit() {
   };
 
   const handleOpenComplianceModal = (file) => {
+    if (isRole3) return;
+
     setSelectedFileForCompliance(file);
     
     const newCumpleValue = file.cumple === 'true' || file.cumple === true || file.cumple === 1
@@ -1584,13 +1587,15 @@ export default function DynamicRecordEdit() {
                                     color: '#fff',
                                     padding: '6px 12px',
                                     borderRadius: '4px',
-                                    cursor: 'pointer',
+                                    cursor: isRole3 ? 'not-allowed' : 'pointer',
                                     display: 'inline-block',
                                     fontSize: '12px',
                                     fontWeight: '500',
                                   }}
-                                  onClick={() =>
-                                    handleOpenComplianceModal(file)
+                                  onClick={
+                                    isRole3
+                                      ? undefined
+                                      : () => handleOpenComplianceModal(file)
                                   }
                                 >
                                   {file.cumple === true ||
